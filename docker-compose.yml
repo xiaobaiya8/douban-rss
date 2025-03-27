@@ -1,0 +1,20 @@
+version: '3'
+
+services:
+  douban-api:
+    build: .
+    container_name: douban-api
+    ports:
+      - "9150:9150"
+    volumes:
+      - ./config:/config
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Shanghai
+      - CONFIG_DIR=/config
+      - PYTHONUNBUFFERED=1
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3" 

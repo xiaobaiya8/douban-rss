@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>豆瓣电影/剧集 API 配置</title>
+    <link rel="stylesheet" href="/static/css/config.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Toast 提示组件 -->
+        <div id="toast" class="toast"></div>
+        
+        <!-- 隐藏的用户数据 -->
+        <script id="config-users-data" type="application/json">{{ config.users|tojson|safe if config.users else "[]" }}</script>
+        
+        <div class="header">
+            <h1><i class="bi bi-film"></i> 豆瓣电影/剧集 API 配置</h1>
+            <button type="button" class="btn-logout" onclick="logout()"><i class="bi bi-box-arrow-right"></i> 退出登录</button>
+        </div>
+        
+        <!-- 顶部状态栏 -->
+        <div class="status-bar">
+            <button type="button" id="runButton" class="btn-success" onclick="runParser()"><i class="bi bi-arrow-clockwise"></i> 立即更新数据</button>
+            <div id="parserStatus" class="status-info status-idle">
+                <div class="status-icon"><i class="bi bi-check-circle"></i></div>
+                <div class="status-text">
+                    状态: 空闲
+                    <br>
+                    上次更新: <span id="lastRunTime">从未运行</span>
+                    <br>
+                    下次更新: <span id="nextRunTime">未设置</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tab 切换 -->
+        <div class="tabs">
+            <div class="tab-buttons">
+                <button class="tab-button active" onclick="switchTab('basic')"><i class="bi bi-gear"></i> 基本配置</button>
+                <button class="tab-button" onclick="switchTab('users')"><i class="bi bi-people"></i> 用户列表</button>
+                <button class="tab-button" onclick="switchTab('telegram')"><i class="bi bi-telegram"></i> Telegram 通知</button>
+                <button class="tab-button" onclick="switchTab('interval')"><i class="bi bi-clock"></i> 更新间隔</button>
+                <button class="tab-button" onclick="switchTab('password')"><i class="bi bi-key"></i> 修改密码</button>
+                <button class="tab-button" onclick="switchTab('api')"><i class="bi bi-code-slash"></i> API接口</button>
+            </div>
+        </div>
+
+        <!-- 基本配置 -->
+        <div id="basic-tab" class="tab-content active">
+            <div class="form-group">
+                <label>Cookie</label>
+                <textarea id="cookie" name="cookie" rows="3">{{ config.cookie }}</textarea>
+                <div class="help-text">从豆瓣网站复制 Cookie</div>
+                <div class="cookie-actions">
+                    <button type="button" class="btn-secondary" onclick="checkCookie()" id="checkCookieBtn"><i class="bi bi-shield-check"></i> 检测 Cookie 有效性</button>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>监控项目</label>
+                <div class="monitors-config">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="monitor_user_wish" name="monitor_user_wish" 
+                               {{ 'checked' if config.get('monitors', {}).get('user_wish') else '' }}>
+                        <span><i class="bi bi-bookmark-heart"></i> 监控用户想看列表</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="monitor_latest" name="monitor_latest"
+                               {{ 'checked' if config.get('monitors', {}).get('latest') else '' }}>
+                        <span><i class="bi bi-clock-history"></i> 监控豆瓣最新</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="monitor_popular" name="monitor_popular"
+                               {{ 'checked' if config.get('monitors', {}).get('popular') else '' }}>
+                        <span><i class="bi bi-fire"></i> 监控豆瓣最热</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="monitor_hidden_gems" name="monitor_hidden_gems"
+                               {{ 'checked' if config.get('monitors', {}).get('hidden_gems') else '' }}>
+                        <span><i class="bi bi-gem"></i> 监控豆瓣冷门佳片</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- 用户列表配置 -->
+        <div id="users-tab" class="tab-content">
+            <div class="form-group">
+                <label>用户列表</label>
+                <div class="user-help">
+                    <i class="bi bi-info-circle"></i> 
+                    <span>用户ID可在豆瓣个人主页URL中获取，例如：https://www.douban.com/people/<strong>user_id</strong>/</span>
+                    <button type="button" class="btn-help" onclick="showUserIdGuide()"><i class="bi bi-question-circle"></i> 查看教程</button>
+                </div>
+                <div class="user-add">
+                    <input type="text" 
+                           id="newUserId" 
+                           placeholder="输入用户ID">
+                    <input type="text" 
+                           id="newUserNote" 
+                           placeholder="输入备注（可选）">
+                    <button type="button" 
+                            class="btn-primary" 
+                            onclick="addUser()"><i class="bi bi-plus-lg"></i> 添加</button>
+                </div>
+                <div id="userList" class="user-list"></div>
+            </div>
+        </div>
+
+        <!-- Telegram 配置 -->
+        <div id="telegram-tab" class="tab-content">
+            <div class="form-group">
+                <label>Telegram 通知</label>
+                <div class="telegram-config">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="telegram_enabled" name="telegram_enabled" 
+                               {{ 'checked' if config.get('telegram', {}).get('enabled') else '' }}>
+                        <span><i class="bi bi-bell"></i> 启用 Telegram 通知</span>
+                    </label>
+                    
+                    <div class="telegram-settings" id="telegramSettings">
+                        <div class="input-group">
+                            <label>Bot Token</label>
+                            <input type="text" id="telegram_bot_token" name="telegram_bot_token" 
+                                   value="{{ config.get('telegram', {}).get('bot_token', '') }}"
+                                   placeholder="输入你的 Bot Token">
+                        </div>
+                        <div class="input-group">
+                            <label>Chat ID</label>
+                            <input type="text" id="telegram_chat_id" name="telegram_chat_id"
+                                   value="{{ config.get('telegram', {}).get('chat_id', '') }}"
+                                   placeholder="输入你的 Chat ID">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 更新间隔配置 -->
+        <div id="interval-tab" class="tab-content">
+            <div class="form-group">
+                <label>更新间隔（秒）</label>
+                <div class="input-with-icon">
+                    <i class="bi bi-clock"></i>
+                    <input type="number" id="update_interval" name="update_interval" 
+                           value="{{ config.get('update_interval', 3600) }}" min="300">
+                </div>
+                <div class="help-text">最小间隔 300 秒（5分钟）</div>
+            </div>
+        </div>
+
+        <!-- 修改密码 -->
+        <div id="password-tab" class="tab-content">
+            <div class="form-group">
+                <label>修改密码</label>
+                <div class="password-form">
+                    <div class="input-group">
+                        <label>当前密码</label>
+                        <div class="input-with-icon">
+                            <i class="bi bi-lock"></i>
+                            <input type="password" id="current_password">
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>新密码</label>
+                        <div class="input-with-icon">
+                            <i class="bi bi-lock-fill"></i>
+                            <input type="password" id="new_password">
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>确认新密码</label>
+                        <div class="input-with-icon">
+                            <i class="bi bi-lock-fill"></i>
+                            <input type="password" id="confirm_password">
+                        </div>
+                    </div>
+                    <button type="button" class="btn-primary" onclick="changePassword()"><i class="bi bi-check-lg"></i> 修改密码</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- API接口 -->
+        <div id="api-tab" class="tab-content">
+            <div class="api-card">
+                <div class="api-card-header">
+                    <h3><i class="bi bi-code-slash"></i> API接口列表</h3>
+                </div>
+                <div class="api-card-body">
+                    <div class="api-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>接口说明</th>
+                                    <th>URL</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><i class="bi bi-film"></i> 用户想看电影</td>
+                                    <td><code>/movies</code></td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-tv"></i> 用户想看剧集</td>
+                                    <td><code>/tv</code></td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-film"></i> 最新电影</td>
+                                    <td><code>/new_movies</code></td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-tv"></i> 最新剧集</td>
+                                    <td><code>/new_tv</code></td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-film"></i> 热门电影</td>
+                                    <td><code>/hot_movies</code></td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-tv"></i> 热门剧集</td>
+                                    <td><code>/hot_tv</code></td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-film"></i> 冷门佳片电影</td>
+                                    <td><code>/hidden_gems_movies</code></td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-tv"></i> 冷门佳片剧集</td>
+                                    <td><code>/hidden_gems_tv</code></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="api-note">
+                        <i class="bi bi-info-circle"></i> 所有API接口均返回JSON格式数据，可直接用于Radarr/Sonarr导入。
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/config.js"></script>
+    
+    <!-- 主题切换按钮 -->
+    <button class="theme-switch" id="themeSwitch" title="切换深色/浅色模式">
+        <i class="bi bi-moon-fill"></i>
+    </button>
+</body>
+</html> 
