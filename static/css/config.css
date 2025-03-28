@@ -1481,6 +1481,7 @@ body.dark-mode .highlight {
 
 .dark-mode .api-section-header {
     background-color: #3a3a3a;
+    color: #f8f9fa;
 }
 
 .api-section-header td {
@@ -1586,5 +1587,24 @@ body.dark-mode .radio-label:hover {
     
     body:not(.light-mode) .radio-label:hover {
         background-color: rgba(255, 255, 255, 0.1);
+    }
+}
+
+/* 添加自动深色模式支持 */
+@media (prefers-color-scheme: dark) {
+    body:not(.light-mode) .api-section-header {
+        background-color: #3a3a3a;
+        color: #f8f9fa;
+    }
+}
+
+/* 确保深色模式下的API部分标题内的图标可见 */
+.dark-mode .api-section-header i {
+    color: #4dabf7;
+}
+
+@media (prefers-color-scheme: dark) {
+    body:not(.light-mode) .api-section-header i {
+        color: #4dabf7;
     }
 } 
