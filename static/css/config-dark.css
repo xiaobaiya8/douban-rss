@@ -1,0 +1,122 @@
+/* 深色模式的CSS变量 */
+body.dark-mode {
+    --bg-color: #121212;
+    --container-bg: #1e2125;
+    --text-color: #f8f9fa;
+    --light-text: #ced4da;
+    --dark-color: #f8f9fa;
+    --light-color: #2b3035;
+    --border-color: #495057;
+    --primary-color: #4dabf7;
+    --primary-hover: #339af0;
+    --success-color: #40c057;
+    --success-hover: #2f9e44;
+    --info-color: #22b8cf;
+    --danger-color: #fa5252;
+    --danger-hover: #e03131;
+    --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* API 节标题样式 - 深色模式 */
+body.dark-mode .api-section-header {
+    background-color: #3a3a3a;
+    color: #f8f9fa;
+}
+
+body.dark-mode .api-section-header i {
+    color: #4dabf7;
+}
+
+/* 复制按钮样式 - 深色模式 */
+body.dark-mode .copy-btn {
+    color: #aaa;
+}
+
+body.dark-mode .copy-btn:hover {
+    color: #4dabf7;
+}
+
+/* API笔记样式 - 深色模式 */
+body.dark-mode .api-note {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #aaa;
+}
+
+body.dark-mode .api-note-item {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* 用户帮助样式 - 深色模式 */
+body.dark-mode .user-help {
+    background-color: rgba(34, 184, 207, 0.15);
+    color: #f8f9fa;
+}
+
+body.dark-mode .user-help strong {
+    color: #4dabf7;
+    background: rgba(75, 171, 247, 0.15);
+}
+
+/* 帮助按钮样式 - 深色模式 */
+body.dark-mode .btn-help {
+    color: #22b8cf;
+    border-color: #22b8cf;
+}
+
+body.dark-mode .btn-help:hover {
+    background-color: #22b8cf;
+    color: #343a40;
+}
+
+/* 单选按钮样式 - 深色模式 */
+body.dark-mode .radio-label {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+body.dark-mode .radio-label:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* API表格代码样式 - 深色模式 */
+body.dark-mode .api-table code {
+    background: #343a40;
+    color: #4dabf7;
+}
+
+/* 滚动条样式 - 深色模式 */
+body.dark-mode::-webkit-scrollbar,
+body.dark-mode *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+body.dark-mode::-webkit-scrollbar-track,
+body.dark-mode *::-webkit-scrollbar-track {
+    background: #343a40;
+}
+
+body.dark-mode::-webkit-scrollbar-thumb,
+body.dark-mode *::-webkit-scrollbar-thumb {
+    background: #495057;
+    border-radius: 4px;
+}
+
+body.dark-mode::-webkit-scrollbar-thumb:hover,
+body.dark-mode *::-webkit-scrollbar-thumb:hover {
+    background: #6c757d;
+}
+
+/* 状态样式 - 深色模式 */
+body.dark-mode .status-info.status-idle {
+    background-color: rgba(108, 117, 125, 0.2);
+}
+
+body.dark-mode .status-info.status-running {
+    background-color: rgba(75, 171, 247, 0.15);
+}
+
+/* 空状态样式 - 深色模式 */
+body.dark-mode .empty-state {
+    background: rgba(255, 255, 255, 0.05);
+    color: #ced4da;
+} 

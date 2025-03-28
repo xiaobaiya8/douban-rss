@@ -469,11 +469,13 @@ function toggleTheme() {
         
         if (prefersDarkMode) {
             // 系统是深色，切换到浅色
+            body.classList.remove('dark-mode');
             body.classList.add('light-mode');
             themeSwitch.innerHTML = moonIcon;
             localStorage.setItem('theme', 'light');
         } else {
             // 系统是浅色，切换到深色
+            body.classList.remove('light-mode');
             body.classList.add('dark-mode');
             themeSwitch.innerHTML = sunIcon;
             localStorage.setItem('theme', 'dark');
@@ -492,15 +494,23 @@ function initTheme() {
     
     if (savedTheme === 'dark') {
         body.classList.add('dark-mode');
+        if (body.classList.contains('light-mode')) {
+            body.classList.remove('light-mode');
+        }
         themeSwitch.innerHTML = sunIcon;
     } else if (savedTheme === 'light') {
         body.classList.add('light-mode');
+        if (body.classList.contains('dark-mode')) {
+            body.classList.remove('dark-mode');
+        }
         themeSwitch.innerHTML = moonIcon;
     } else if (prefersDarkMode) {
         // 如果系统是深色模式并且用户没有保存首选项，应用深色主题
+        body.classList.add('dark-mode');
         themeSwitch.innerHTML = sunIcon;
     } else {
         // 默认使用浅色主题
+        body.classList.add('light-mode');
         themeSwitch.innerHTML = moonIcon;
     }
     
@@ -514,8 +524,12 @@ function initTheme() {
             colorSchemeQuery.addEventListener('change', (event) => {
                 if (!localStorage.getItem('theme')) {
                     if (event.matches) {
+                        body.classList.remove('light-mode');
+                        body.classList.add('dark-mode');
                         themeSwitch.innerHTML = sunIcon;
                     } else {
+                        body.classList.remove('dark-mode');
+                        body.classList.add('light-mode');
                         themeSwitch.innerHTML = moonIcon;
                     }
                 }
