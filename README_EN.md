@@ -4,6 +4,10 @@ A tool for monitoring Douban movie and TV series information and providing API i
 
 [中文文档](https://github.com/xiaobaiya8/douban-rss/blob/main/README.md)
 
+## Community
+
+Join our Telegram group for discussions: [Douban RSS Group](https://t.me/douban_rss)
+
 ## Features
 
 - **User Wishlist Monitoring**: Automatically synchronize movies and TV shows from Douban user wishlists

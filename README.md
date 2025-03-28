@@ -4,6 +4,10 @@
 
 [English Version](https://github.com/xiaobaiya8/douban-rss/blob/main/README_EN.md)
 
+## 交流群组
+
+欢迎加入我们的Telegram群组进行交流：[豆瓣RSS交流群](https://t.me/douban_rss)
+
 ## 功能特点
 
 - **用户想看列表监控**：自动同步豆瓣用户想看的电影和剧集
