@@ -2,6 +2,7 @@
 :root {
     --primary-color: #007bff;
     --primary-hover: #0056b3;
+    --primary-rgb: 0, 123, 255;
     --success-color: #28a745;
     --success-hover: #218838;
     --secondary-color: #6c757d;
@@ -16,6 +17,11 @@
     --light-text: #6c757d;
     --bg-color: #f5f5f5;
     --container-bg: #ffffff;
+    --input-bg: #ffffff;
+    --item-bg: #f8f9fa;
+    --btn-neutral-bg: #e9ecef;
+    --btn-neutral-color: #495057;
+    --btn-neutral-hover: #dee2e6;
     --border-radius: 8px;
     --box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     --transition: all 0.3s ease;
@@ -365,23 +371,28 @@ input[type="number"] {
 /* 用户列表样式 */
 .user-list {
     margin-bottom: 15px;
-    max-height: 300px;
+    max-height: 400px;
     overflow-y: auto;
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
+    padding: 10px;
+    background-color: var(--container-bg);
 }
 
 .user-item {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    padding: 10px 15px;
-    background: var(--light-color);
-    border-bottom: 1px solid var(--border-color);
-    transition: var(--transition);
+    padding: 12px 15px;
+    background-color: var(--item-bg);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    transition: all 0.3s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .user-item:last-child {
-    border-bottom: none;
+    margin-bottom: 0;
 }
 
 .user-item:hover {
@@ -422,12 +433,10 @@ input[type="number"] {
 
 .user-add {
     display: flex;
+    flex-wrap: wrap;
     gap: 10px;
     margin-bottom: 15px;
-    padding: 15px;
-    background: var(--light-color);
-    border-radius: var(--border-radius);
-    transition: var(--transition);
+    align-items: center;
 }
 
 .user-add:hover {
@@ -444,6 +453,39 @@ input[type="number"] {
 
 .user-add button {
     white-space: nowrap;
+}
+
+/* 用户操作区域样式优化 */
+.user-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 6px;
+}
+
+/* 查看广播按钮样式 */
+.btn-view {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    background-color: var(--btn-neutral-bg);
+    color: var(--btn-neutral-color);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-decoration: none;
+}
+
+.btn-view:hover {
+    background-color: var(--btn-neutral-hover);
+    color: var(--primary-color);
+}
+
+.btn-view i {
+    font-size: 14px;
 }
 
 /* Toast通知样式 */
@@ -1019,6 +1061,13 @@ input[type="number"] {
     
     .user-add {
         flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .user-add input, 
+    .user-add .input-with-label {
+        width: 100%;
+        max-width: 100%;
     }
     
     .user-item {
@@ -1034,4 +1083,109 @@ input[type="number"] {
         width: 100%;
         margin: 5px 0;
     }
+    
+    .user-actions {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .user-note-input {
+        flex-grow: 1;
+        min-width: 120px;
+    }
+    
+    .status-pages-input {
+        width: 60px;
+    }
+}
+
+/* 广播页数输入框 */
+.status-pages-input {
+    width: 70px;
+    height: 32px;
+    padding: 5px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    margin-right: 5px;
+    font-size: 14px;
+    background-color: var(--input-bg);
+    color: var(--text-color);
+    transition: all 0.3s;
+}
+
+.status-pages-input:focus {
+    border-color: var(--primary-color);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.25);
+}
+
+/* 带标签的输入框 */
+.input-with-label {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    max-width: 120px;
+}
+
+.input-label {
+    margin-left: 5px;
+    color: var(--light-text);
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+.help-icon {
+    margin-left: 2px;
+    cursor: help;
+    font-size: 12px;
+    opacity: 0.7;
+    transition: all 0.3s;
+}
+
+.help-icon:hover {
+    opacity: 1;
+    color: var(--primary-color);
+}
+
+/* 工具提示样式 */
+.tooltip {
+    position: absolute;
+    background-color: var(--dark-color);
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    max-width: 250px;
+    word-wrap: break-word;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.tooltip:after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 6px solid var(--dark-color);
+    bottom: -6px;
+    left: 50%;
+    margin-left: -6px;
+}
+
+.tooltip.show {
+    opacity: 1;
+}
+
+.dark-mode .tooltip {
+    background-color: var(--light-color);
+    color: var(--text-color);
+}
+
+.dark-mode .tooltip:after {
+    border-top-color: var(--light-color);
 } 

@@ -17,6 +17,9 @@
         <!-- 隐藏的用户数据 -->
         <script id="config-users-data" type="application/json">{{ config.users|tojson|safe if config.users else "[]" }}</script>
         
+        <!-- 隐藏的广播用户数据 -->
+        <script id="config-statuses-data" type="application/json">{{ config.statuses|tojson|safe if config.statuses else "[]" }}</script>
+        
         <div class="header">
             <h1><i class="bi bi-film"></i> 豆瓣电影/剧集 API 配置</h1>
             <button type="button" class="btn-logout" onclick="logout()"><i class="bi bi-box-arrow-right"></i> 退出登录</button>
@@ -42,6 +45,7 @@
             <div class="tab-buttons">
                 <button class="tab-button active" onclick="switchTab('basic')"><i class="bi bi-gear"></i> 基本配置</button>
                 <button class="tab-button" onclick="switchTab('users')"><i class="bi bi-people"></i> 用户列表</button>
+                <button class="tab-button" onclick="switchTab('statuses')"><i class="bi bi-broadcast"></i> 广播订阅</button>
                 <button class="tab-button" onclick="switchTab('telegram')"><i class="bi bi-telegram"></i> Telegram 通知</button>
                 <button class="tab-button" onclick="switchTab('interval')"><i class="bi bi-clock"></i> 更新间隔</button>
                 <button class="tab-button" onclick="switchTab('password')"><i class="bi bi-key"></i> 修改密码</button>
@@ -68,16 +72,25 @@
                                {{ 'checked' if config.get('monitors', {}).get('user_wish') else '' }}>
                         <span><i class="bi bi-bookmark-heart"></i> 监控用户想看列表</span>
                     </label>
+                    
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="monitor_status" name="monitor_status" 
+                               {{ 'checked' if config.get('monitors', {}).get('status') else '' }}>
+                        <span><i class="bi bi-broadcast"></i> 监控用户广播</span>
+                    </label>
+                    
                     <label class="checkbox-label">
                         <input type="checkbox" id="monitor_latest" name="monitor_latest"
                                {{ 'checked' if config.get('monitors', {}).get('latest') else '' }}>
                         <span><i class="bi bi-clock-history"></i> 监控豆瓣最新</span>
                     </label>
+                    
                     <label class="checkbox-label">
                         <input type="checkbox" id="monitor_popular" name="monitor_popular"
                                {{ 'checked' if config.get('monitors', {}).get('popular') else '' }}>
                         <span><i class="bi bi-fire"></i> 监控豆瓣最热</span>
                     </label>
+                    
                     <label class="checkbox-label">
                         <input type="checkbox" id="monitor_hidden_gems" name="monitor_hidden_gems"
                                {{ 'checked' if config.get('monitors', {}).get('hidden_gems') else '' }}>
@@ -108,6 +121,28 @@
                             onclick="addUser()"><i class="bi bi-plus-lg"></i> 添加</button>
                 </div>
                 <div id="userList" class="user-list"></div>
+            </div>
+        </div>
+
+        <!-- 广播订阅配置 -->
+        <div id="statuses-tab" class="tab-content">
+            <div class="form-group">
+                <label>广播订阅列表</label>
+                <div class="user-help">
+                    <i class="bi bi-info-circle"></i> 
+                    <span>用户ID可在豆瓣个人主页URL中获取，例如：https://www.douban.com/people/<strong>user_id</strong>/</span>
+                    <button type="button" class="btn-help" onclick="showUserIdGuide()"><i class="bi bi-question-circle"></i> 查看教程</button>
+                </div>
+                <div class="user-add">
+                    <input type="text" id="newStatusId" placeholder="输入用户ID">
+                    <input type="text" id="newStatusNote" placeholder="输入备注（可选）">
+                    <div class="input-with-label">
+                        <input type="number" id="newStatusPages" placeholder="抓取页数" value="1" min="1" max="10">
+                        <span class="input-label">页 <i class="bi bi-question-circle help-icon" title="设置抓取用户广播的页数（1-10页），页数越多获取的内容越多"></i></span>
+                    </div>
+                    <button type="button" class="btn-primary" onclick="addStatus()"><i class="bi bi-plus-lg"></i> 添加</button>
+                </div>
+                <div id="statusList" class="user-list"></div>
             </div>
         </div>
 
@@ -206,40 +241,49 @@
                     <h3><i class="bi bi-code-slash"></i> API接口列表</h3>
                 </div>
                 <div class="api-card-body">
-                    <div class="api-table">
-                        <table>
+                    <div class="api-section-content">
+                        <table class="api-table">
                             <thead>
                                 <tr>
-                                    <th>接口说明</th>
-                                    <th>URL</th>
+                                    <th width="45%">接口描述</th>
+                                    <th width="55%">接口地址</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr class="api-section-header">
-                                    <td colspan="2"><i class="bi bi-code-slash"></i> <strong>Radarr/Sonarr接口</strong></td>
+                                    <td colspan="2"><i class="bi bi-stars"></i> Radarr/Sonarr接口</td>
                                 </tr>
                                 <tr>
-                                    <td><i class="bi bi-film"></i> 用户想看电影</td>
+                                    <td>想看电影</td>
                                     <td><div class="copy-container"><code>/rss/movies</code><button class="copy-btn" data-path="/rss/movies"><i class="bi bi-clipboard"></i></button></div></td>
                                 </tr>
                                 <tr>
-                                    <td><i class="bi bi-tv"></i> 用户想看剧集</td>
+                                    <td>想看剧集</td>
                                     <td><div class="copy-container"><code>/rss/tv</code><button class="copy-btn" data-path="/rss/tv"><i class="bi bi-clipboard"></i></button></div></td>
                                 </tr>
+                                <!-- 添加广播API接口 -->
                                 <tr>
-                                    <td><i class="bi bi-film"></i> 最新电影</td>
+                                    <td>广播电影</td>
+                                    <td><div class="copy-container"><code>/rss/status_movies</code><button class="copy-btn" data-path="/rss/status_movies"><i class="bi bi-clipboard"></i></button></div></td>
+                                </tr>
+                                <tr>
+                                    <td>广播剧集</td>
+                                    <td><div class="copy-container"><code>/rss/status_tv</code><button class="copy-btn" data-path="/rss/status_tv"><i class="bi bi-clipboard"></i></button></div></td>
+                                </tr>
+                                <tr>
+                                    <td>最新电影</td>
                                     <td><div class="copy-container"><code>/rss/new_movies</code><button class="copy-btn" data-path="/rss/new_movies"><i class="bi bi-clipboard"></i></button></div></td>
                                 </tr>
                                 <tr>
-                                    <td><i class="bi bi-film"></i> 热门电影</td>
+                                    <td>热门电影</td>
                                     <td><div class="copy-container"><code>/rss/hot_movies</code><button class="copy-btn" data-path="/rss/hot_movies"><i class="bi bi-clipboard"></i></button></div></td>
                                 </tr>
                                 <tr>
-                                    <td><i class="bi bi-tv"></i> 热门剧集</td>
+                                    <td>热门剧集</td>
                                     <td><div class="copy-container"><code>/rss/hot_tv</code><button class="copy-btn" data-path="/rss/hot_tv"><i class="bi bi-clipboard"></i></button></div></td>
                                 </tr>
                                 <tr>
-                                    <td><i class="bi bi-film"></i> 冷门佳片电影</td>
+                                    <td>冷门佳片电影</td>
                                     <td><div class="copy-container"><code>/rss/hidden_gems_movies</code><button class="copy-btn" data-path="/rss/hidden_gems_movies"><i class="bi bi-clipboard"></i></button></div></td>
                                 </tr>
                                 <!-- 添加RSS路由 -->

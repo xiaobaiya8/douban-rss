@@ -23,6 +23,9 @@ function showAlert(message, type) {
 // 用户列表数据结构
 let users = [];
 
+// 广播用户列表数据结构
+let statuses = [];
+
 // 初始化用户列表
 function initUserList() {
     try {
@@ -50,6 +53,33 @@ function initUserList() {
     }
     
     renderUserList();
+    
+    // 初始化广播用户列表
+    try {
+        // 尝试从服务器配置中获取广播用户列表
+        const configStatusesElement = document.getElementById('config-statuses-data');
+        if (configStatusesElement) {
+            const configStatusesJson = configStatusesElement.textContent;
+            if (configStatusesJson) {
+                statuses = JSON.parse(configStatusesJson);
+            } else {
+                statuses = [];
+            }
+        } else {
+            // 兼容旧版本，直接从模板解析
+            const serverStatusesRaw = '{{ config.statuses|tojson|safe if config.statuses else "[]" }}';
+            if (serverStatusesRaw && serverStatusesRaw !== '[]' && !serverStatusesRaw.includes('{{')) {
+                statuses = JSON.parse(serverStatusesRaw);
+            } else {
+                statuses = [];
+            }
+        }
+    } catch (error) {
+        console.error('解析广播用户列表出错:', error);
+        statuses = [];
+    }
+    
+    renderStatusList();
 }
 
 // 渲染用户列表
@@ -75,6 +105,47 @@ function renderUserList() {
                     onclick="removeUser(${index})">
                     <i class="bi bi-trash"></i> 删除
             </button>
+        </div>
+    `).join('');
+}
+
+// 渲染广播用户列表
+function renderStatusList() {
+    const statusList = document.getElementById('statusList');
+    if (!statusList) return;
+    
+    if (statuses.length === 0) {
+        statusList.innerHTML = '<div class="empty-state">没有添加任何广播用户，请添加需要监控的广播</div>';
+        return;
+    }
+    
+    statusList.innerHTML = statuses.map((status, index) => `
+        <div class="user-item">
+            <span class="user-id">${status.id || ''}</span>
+            <div class="user-actions">
+                <input type="text" 
+                       class="user-note-input" 
+                       value="${status.note || ''}" 
+                       placeholder="添加备注" 
+                       onchange="updateStatusNote(${index}, this.value)">
+                <div class="input-with-label">
+                    <input type="number" 
+                           class="status-pages-input" 
+                           value="${status.pages || 1}" 
+                           min="1" 
+                           max="10"
+                           onchange="updateStatusPages(${index}, this.value)">
+                    <span class="input-label">页</span>
+                </div>
+                <a href="https://www.douban.com/people/${status.id}/statuses" target="_blank" class="btn-view" title="查看广播">
+                    <i class="bi bi-box-arrow-up-right"></i>
+                </a>
+                <button type="button" 
+                        class="btn-delete" 
+                        onclick="removeStatus(${index})">
+                        <i class="bi bi-trash"></i> 删除
+                </button>
+            </div>
         </div>
     `).join('');
 }
@@ -122,79 +193,160 @@ function updateUserNote(index, note) {
     });
 }
 
+// 添加新广播用户
+function addStatus() {
+    const idInput = document.getElementById('newStatusId');
+    const noteInput = document.getElementById('newStatusNote');
+    const pagesInput = document.getElementById('newStatusPages');
+    const id = idInput.value.trim();
+    const note = noteInput.value.trim();
+    const pages = parseInt(pagesInput.value) || 1;
+    
+    if (id) {
+        if (!statuses.some(s => s.id === id)) {
+            statuses.push({ id, note, pages });
+            renderStatusList();
+            idInput.value = '';
+            noteInput.value = '';
+            pagesInput.value = '1';
+            saveConfig(() => {
+                showToast('广播用户添加成功');
+            });
+        } else {
+            showToast('该广播用户ID已存在', 'error');
+        }
+    } else {
+        showToast('请输入广播用户ID', 'error');
+    }
+}
+
+// 删除广播用户
+function removeStatus(index) {
+    if (confirm('确定要删除这个广播用户吗？')) {
+        statuses.splice(index, 1);
+        renderStatusList();
+        saveConfig(() => {
+            showToast('广播用户已删除');
+        });
+    }
+}
+
+// 更新广播用户备注
+function updateStatusNote(index, note) {
+    statuses[index].note = note.trim();
+    saveConfig(() => {
+        showToast('广播用户备注已更新');
+    });
+}
+
+// 更新广播抓取页数
+function updateStatusPages(index, pages) {
+    const pagesNum = parseInt(pages) || 1;
+    if (pagesNum >= 1 && pagesNum <= 10) {
+        statuses[index].pages = pagesNum;
+        saveConfig(() => {
+            showToast('广播抓取页数已更新');
+        });
+    } else {
+        showToast('广播抓取页数必须在1-10之间', 'error');
+        renderStatusList(); // 恢复原值
+    }
+}
+
 // 保存配置
 function saveConfig(successCallback) {
+    // 禁用保存按钮，显示加载中状态
+    const saveButtons = document.querySelectorAll('.btn-save');
+    saveButtons.forEach(btn => {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-arrow-repeat spin"></i> 保存中...';
+    });
+    
+    // 获取用户监控配置
+    const monitor_user_wish = document.getElementById('monitor_user_wish').checked;
+    const monitor_status = document.getElementById('monitor_status').checked;
+    const monitor_latest = document.getElementById('monitor_latest').checked;
+    const monitor_popular = document.getElementById('monitor_popular').checked;
+    const monitor_hidden_gems = document.getElementById('monitor_hidden_gems').checked;
+    
+    // 获取基本配置
+    const cookie = document.getElementById('cookie').value;
+    const update_interval = parseInt(document.getElementById('update_interval').value);
+    
+    // 获取Telegram配置
+    const telegram_enabled = document.getElementById('telegram_enabled').checked;
+    const telegram_bot_token = document.getElementById('telegram_bot_token').value;
+    const telegram_chat_id = document.getElementById('telegram_chat_id').value;
+    const telegram_notify_mode = document.querySelector('input[name="telegram_notify_mode"]:checked').value;
+    
+    // 构建用户ID和备注列表
+    const user_ids = users.map(u => u.id).join(',');
+    const user_notes = users.map(u => u.note || '').join(',');
+    
+    // 构建广播用户列表
+    const status_ids = statuses.map(s => s.id).join(',');
+    const status_notes = statuses.map(s => s.note || '').join(',');
+    const status_pages = statuses.map(s => s.pages || 1).join(',');
+    
+    // 创建表单数据
     const formData = new FormData();
+    formData.append('cookie', cookie);
+    formData.append('update_interval', update_interval);
+    formData.append('user_ids', user_ids);
+    formData.append('user_notes', user_notes);
     
-    // 收集表单数据
-    const cookieInput = document.getElementById('cookie');
-    const intervalInput = document.getElementById('update_interval');
-    const telegramEnabled = document.getElementById('telegram_enabled');
-    const telegramBotToken = document.getElementById('telegram_bot_token');
-    const telegramChatId = document.getElementById('telegram_chat_id');
-    const telegramNotifyMode = document.querySelector('input[name="telegram_notify_mode"]:checked');
+    // 添加广播用户数据
+    formData.append('status_ids', status_ids);
+    formData.append('status_notes', status_notes);
+    formData.append('status_pages', status_pages);
     
-    // 设置用户数据
-    formData.set('user_ids', users.map(u => u.id).join(','));
-    formData.set('user_notes', users.map(u => u.note || '').join(','));
+    // 添加监控设置
+    formData.append('monitor_user_wish', monitor_user_wish);
+    formData.append('monitor_status', monitor_status);
+    formData.append('monitor_latest', monitor_latest);
+    formData.append('monitor_popular', monitor_popular);
+    formData.append('monitor_hidden_gems', monitor_hidden_gems);
     
-    // 设置Cookie
-    if (cookieInput) formData.set('cookie', cookieInput.value);
+    // 添加Telegram设置
+    formData.append('telegram_enabled', telegram_enabled);
+    formData.append('telegram_bot_token', telegram_bot_token);
+    formData.append('telegram_chat_id', telegram_chat_id);
+    formData.append('telegram_notify_mode', telegram_notify_mode);
     
-    // 设置更新间隔
-    if (intervalInput) formData.set('update_interval', intervalInput.value);
-    
-    // 设置Telegram选项
-    if (telegramEnabled) formData.set('telegram_enabled', telegramEnabled.checked);
-    if (telegramBotToken) formData.set('telegram_bot_token', telegramBotToken.value);
-    if (telegramChatId) formData.set('telegram_chat_id', telegramChatId.value);
-    
-    // 确保即使config中原本没有telegram_notify_mode也能正确保存
-    if (telegramNotifyMode) {
-        formData.set('telegram_notify_mode', telegramNotifyMode.value);
-    } else {
-        // 如果没有选中任何模式，默认设为'always'
-        formData.set('telegram_notify_mode', 'always');
-    }
-    
-    // 设置监控选项
-    const monitorUserWish = document.getElementById('monitor_user_wish');
-    const monitorLatest = document.getElementById('monitor_latest');
-    const monitorPopular = document.getElementById('monitor_popular');
-    const monitorHiddenGems = document.getElementById('monitor_hidden_gems');
-    
-    if (monitorUserWish) formData.set('monitor_user_wish', monitorUserWish.checked);
-    if (monitorLatest) formData.set('monitor_latest', monitorLatest.checked);
-    if (monitorPopular) formData.set('monitor_popular', monitorPopular.checked);
-    if (monitorHiddenGems) formData.set('monitor_hidden_gems', monitorHiddenGems.checked);
-    
-    // 显示保存中状态
-    const saveIndicator = document.createElement('div');
-    saveIndicator.className = 'save-indicator';
-    saveIndicator.innerHTML = '<i class="bi bi-arrow-clockwise spin"></i> 保存中...';
-    document.body.appendChild(saveIndicator);
-    
+    // 发送请求
     fetch('/save_config', {
         method: 'POST',
-        body: formData
+        body: formData,
     })
     .then(response => response.json())
     .then(data => {
-        // 移除保存指示器
-        document.body.removeChild(saveIndicator);
+        // 恢复保存按钮
+        saveButtons.forEach(btn => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check-lg"></i> 保存';
+        });
         
         if (data.status === 'success') {
-            if (typeof successCallback === 'function') {
+            if (successCallback) {
                 successCallback();
+            } else {
+                showToast('配置已保存');
             }
+            
+            // 检查是否需要重启定时器
+            restartScheduler();
         } else {
-            showToast(data.message || '保存失败', 'error');
+            showToast('保存失败：' + data.message, 'error');
         }
     })
     .catch(error => {
-        // 移除保存指示器
-        document.body.removeChild(saveIndicator);
-        showToast('保存失败: ' + error, 'error');
+        // 恢复保存按钮
+        saveButtons.forEach(btn => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check-lg"></i> 保存';
+        });
+        
+        showToast('保存失败：' + error, 'error');
     });
 }
 
@@ -279,6 +431,25 @@ function updateParserStatus() {
         .catch(error => {
             console.error('获取状态失败:', error);
         });
+}
+
+// 检查是否需要重启定时器
+function restartScheduler() {
+    // 发送请求重启定时器
+    fetch('/restart_scheduler', {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            console.log('定时器已重启');
+        } else {
+            console.error('定时器重启失败:', data.message);
+        }
+    })
+    .catch(error => {
+        console.error('定时器重启出错:', error);
+    });
 }
 
 // 运行解析器
@@ -610,6 +781,63 @@ function showUserIdGuide() {
     modal.style.display = 'block';
 }
 
+// 初始化工具提示
+function initTooltips() {
+    document.querySelectorAll('[title]').forEach(element => {
+        const title = element.getAttribute('title');
+        if (!title) return;
+        
+        // 创建工具提示元素
+        element.addEventListener('mouseenter', function(e) {
+            // 移除任何现有工具提示
+            const existingTooltip = document.querySelector('.tooltip');
+            if (existingTooltip) {
+                existingTooltip.remove();
+            }
+            
+            const tooltip = document.createElement('div');
+            tooltip.className = 'tooltip';
+            tooltip.textContent = title;
+            document.body.appendChild(tooltip);
+            
+            // 定位工具提示
+            const rect = element.getBoundingClientRect();
+            tooltip.style.left = rect.left + (rect.width / 2) - (tooltip.offsetWidth / 2) + 'px';
+            tooltip.style.top = rect.top - tooltip.offsetHeight - 10 + window.scrollY + 'px';
+            
+            // 处理边界检查，确保提示不会超出屏幕
+            const tooltipRect = tooltip.getBoundingClientRect();
+            if (tooltipRect.left < 0) {
+                tooltip.style.left = '5px';
+            } else if (tooltipRect.right > window.innerWidth) {
+                tooltip.style.left = (window.innerWidth - tooltipRect.width - 5) + 'px';
+            }
+            
+            // 显示工具提示
+            setTimeout(() => {
+                tooltip.classList.add('show');
+            }, 10);
+        });
+        
+        // 移除工具提示
+        element.addEventListener('mouseleave', function() {
+            const tooltip = document.querySelector('.tooltip');
+            if (tooltip) {
+                tooltip.classList.remove('show');
+                setTimeout(() => {
+                    if (tooltip.parentNode) {
+                        tooltip.parentNode.removeChild(tooltip);
+                    }
+                }, 300);
+            }
+        });
+        
+        // 清除title属性，防止原生工具提示
+        element.setAttribute('data-original-title', title);
+        element.removeAttribute('title');
+    });
+}
+
 // 初始化页面
 document.addEventListener('DOMContentLoaded', function() {
     // 初始化主题
@@ -632,6 +860,12 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     });
+    
+    // 添加广播用户按钮点击事件
+    const addStatusBtn = document.querySelector('.add-status-btn');
+    if (addStatusBtn) {
+        addStatusBtn.addEventListener('click', addStatus);
+    }
     
     // 修改 cookie 输入框监听，改用 input 事件实现实时保存
     const cookieInput = document.getElementById('cookie');
@@ -845,4 +1079,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
         });
     });
+    
+    // 初始化工具提示
+    initTooltips();
 }); 

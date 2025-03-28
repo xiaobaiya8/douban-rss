@@ -119,4 +119,31 @@ body.dark-mode .status-info.status-running {
 body.dark-mode .empty-state {
     background: rgba(255, 255, 255, 0.05);
     color: #ced4da;
+}
+
+/* 深色模式样式变量 */
+.dark-mode {
+    --text-color: #eaeaea;
+    --light-text: #a0a0a0;
+    --bg-color: #1a1a1a;
+    --container-bg: #2c2c2c;
+    --border-color: #444;
+    --dark-color: #dddddd;
+    --light-color: #363636;
+    --input-bg: #3a3a3a;
+    --item-bg: #333333;
+    --btn-neutral-bg: #444444;
+    --btn-neutral-color: #dddddd;
+    --btn-neutral-hover: #555555;
+    --box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+/* 深色模式特殊元素调整 */
+.dark-mode .api-table code {
+    background: #3a3a3a;
+    color: #72a1e8;
+}
+
+.dark-mode .status-bar {
+    background: #333;
 } 

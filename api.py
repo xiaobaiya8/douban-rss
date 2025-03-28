@@ -28,6 +28,7 @@ parser_status = {
 CONFIG_DIR = os.getenv('CONFIG_DIR', '.')
 CONFIG_FILE = os.path.join(CONFIG_DIR, 'config.json')
 MOVIES_FILE = os.path.join(CONFIG_DIR, 'movies.json')
+STATUS_FILE = os.path.join(CONFIG_DIR, 'status.json')  # 添加广播数据文件
 NEW_MOVIES_FILE = os.path.join(CONFIG_DIR, 'new_movies.json')
 HOT_MOVIES_FILE = os.path.join(CONFIG_DIR, 'hot_movies.json')
 HIDDEN_GEMS_FILE = os.path.join(CONFIG_DIR, 'hidden_gems.json')
@@ -49,7 +50,8 @@ def run_parser(is_manual=False):
             monitors.get('user_wish', False),
             monitors.get('latest', False),
             monitors.get('popular', False),
-            monitors.get('hidden_gems', False)
+            monitors.get('hidden_gems', False),
+            monitors.get('status', False)  # 添加广播监控
         ])
         current_task = 0
         
@@ -90,6 +92,10 @@ def run_parser(is_manual=False):
         if monitors.get('user_wish'):
             print("\n开始运行用户想看监控...")
             run_monitor([sys.executable, "parse_douban.py"], "用户想看监控")
+        
+        if monitors.get('status'):
+            print("\n开始运行用户广播监控...")
+            run_monitor([sys.executable, "parse_douban_status.py"], "用户广播监控")
         
         if monitors.get('latest'):
             print("\n开始运行最新电影监控...")
@@ -218,10 +224,16 @@ def load_config():
                 if 'monitors' not in config:
                     config['monitors'] = {
                         'user_wish': True,      # 监控用户想看
+                        'status': False,        # 监控用户广播
                         'latest': False,        # 监控最新
                         'popular': False,       # 监控最热
                         'hidden_gems': False    # 监控冷门佳片
                     }
+                elif 'status' not in config['monitors']:
+                    config['monitors']['status'] = False  # 添加广播监控选项
+                # 确保广播用户列表存在
+                if 'statuses' not in config:
+                    config['statuses'] = []
                 return config
     except Exception as e:
         print(f"加载配置失败: {e}")
@@ -230,9 +242,11 @@ def load_config():
     return {
         "cookie": "",
         "users": [],
+        "statuses": [],  # 广播用户列表
         "update_interval": 3600,  # 默认1小时
         "monitors": {
             "user_wish": True,     # 监控用户想看
+            "status": False,       # 监控用户广播
             "latest": False,       # 监控最新
             "popular": False,      # 监控最热
             "hidden_gems": False   # 监控冷门佳片
@@ -343,9 +357,24 @@ def save_config_handler():
                 note = user_notes[i] if i < len(user_notes) else ''
                 users.append({"id": uid, "note": note.strip()})
         
+        # 获取广播用户列表
+        status_ids = request.form.get('status_ids', '').split(',')
+        status_notes = request.form.get('status_notes', '').split(',')
+        status_pages = request.form.get('status_pages', '').split(',')
+        
+        # 构建广播用户列表
+        statuses = []
+        for i, uid in enumerate(status_ids):
+            uid = uid.strip()
+            if uid:  # 只添加非空ID
+                note = status_notes[i] if i < len(status_notes) else ''
+                pages = int(status_pages[i]) if i < len(status_pages) and status_pages[i].strip().isdigit() else 1
+                statuses.append({"id": uid, "note": note.strip(), "pages": pages})
+        
         # 获取监控配置
         monitors = {
             "user_wish": request.form.get('monitor_user_wish') == 'true',
+            "status": request.form.get('monitor_status') == 'true',  # 广播监控
             "latest": request.form.get('monitor_latest') == 'true',
             "popular": request.form.get('monitor_popular') == 'true',
             "hidden_gems": request.form.get('monitor_hidden_gems') == 'true'
@@ -364,6 +393,7 @@ def save_config_handler():
             "password": current_config.get('password'),
             "cookie": request.form.get('cookie', ''),
             "users": users,
+            "statuses": statuses,  # 广播用户列表
             "update_interval": int(request.form.get('update_interval', 3600)),
             "telegram": telegram_config,
             "monitors": monitors
@@ -471,6 +501,21 @@ def get_movies():
 def get_tv_shows():
     """获取所有用户想看的电视剧"""
     data = load_json_file(MOVIES_FILE)
+    unique_shows = get_unique_items(data, 'tv_shows')
+    return jsonify(convert_to_radarr_format(unique_shows, is_tv=True))
+
+# 添加广播相关的API接口
+@app.route('/rss/status_movies')
+def get_status_movies():
+    """获取从广播中提取的电影"""
+    data = load_json_file(STATUS_FILE)
+    unique_movies = get_unique_items(data, 'movies')
+    return jsonify(convert_to_radarr_format(unique_movies))
+
+@app.route('/rss/status_tv')
+def get_status_tv():
+    """获取从广播中提取的电视剧"""
+    data = load_json_file(STATUS_FILE)
     unique_shows = get_unique_items(data, 'tv_shows')
     return jsonify(convert_to_radarr_format(unique_shows, is_tv=True))
 
