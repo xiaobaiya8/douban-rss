@@ -10,11 +10,9 @@ Join our Telegram group for discussions: [Douban RSS Group](https://t.me/douban_
 
 ## Screenshots
 
-### Web Interface
-![Web Interface](https://s2.loli.net/2025/03/28/PgWmOY9tUoenvZC.png)
-
-### Telegram Notifications
-![Telegram Notifications](https://s2.loli.net/2025/03/28/IcVr5bDZmBitLRy.png)
+| Web Interface | Telegram Notifications |
+|---------------|------------------------|
+| <img src="https://s2.loli.net/2025/03/28/PgWmOY9tUoenvZC.png" width="400"> | <img src="https://s2.loli.net/2025/03/28/IcVr5bDZmBitLRy.png" width="400"> |
 
 ## Features
 

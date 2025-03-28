@@ -10,11 +10,9 @@
 
 ## 系统截图
 
-### Web界面
-![Web界面](https://s2.loli.net/2025/03/28/PgWmOY9tUoenvZC.png)
-
-### Telegram通知
-![Telegram通知](https://s2.loli.net/2025/03/28/IcVr5bDZmBitLRy.png)
+| Web界面 | Telegram通知 |
+|---------|--------------|
+| <img src="https://s2.loli.net/2025/03/28/PgWmOY9tUoenvZC.png" width="400"> | <img src="https://s2.loli.net/2025/03/28/IcVr5bDZmBitLRy.png" width="400"> |
 
 ## 功能特点
 
