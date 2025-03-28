@@ -12,7 +12,7 @@ Join our Telegram group for discussions: [Douban RSS Group](https://t.me/douban_
 
 | Web Interface | Telegram Notifications |
 |---------------|------------------------|
-| <img src="https://s2.loli.net/2025/03/28/PgWmOY9tUoenvZC.png" width="400"> | <img src="https://s2.loli.net/2025/03/28/IcVr5bDZmBitLRy.png" width="400"> |
+| <img src="https://raw.githubusercontent.com/xiaobaiya8/douban-rss/main/docs/web-interface.png" width="400"> | <img src="https://raw.githubusercontent.com/xiaobaiya8/douban-rss/main/docs/telegram-notifications.png" width="400"> |
 
 ## Features
 
