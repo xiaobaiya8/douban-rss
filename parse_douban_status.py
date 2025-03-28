@@ -696,7 +696,7 @@ def parse_status_html(html_content, user_id, all_data, cookie):
             
             # 只在处理新条目时添加延迟
             if index < total_items:
-                delay = random.uniform(1, 3)
+                delay = random.uniform(3, 7)
                 print(f"等待 {delay:.1f} 秒后继续...")
                 time.sleep(delay)
                 

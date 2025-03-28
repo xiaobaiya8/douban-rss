@@ -16,6 +16,7 @@ MOVIES_FILE = os.path.join(CONFIG_DIR, 'movies.json')
 NEW_MOVIES_FILE = os.path.join(CONFIG_DIR, 'new_movies.json')
 HOT_MOVIES_FILE = os.path.join(CONFIG_DIR, 'hot_movies.json')
 HIDDEN_GEMS_FILE = os.path.join(CONFIG_DIR, 'hidden_gems.json')
+STATUS_FILE = os.path.join(CONFIG_DIR, 'status.json')
 
 def load_json_file(file_path):
     """加载指定的 JSON 文件"""
@@ -238,6 +239,43 @@ def register_rss_routes(app):
         link = request.url_root + "rsshub/hidden_gems_movies"
         
         rss_xml = generate_rss(movies, title, description, link)
+        return Response(rss_xml, mimetype='application/xml')
+
+    # 添加广播RSS接口
+    @app.route('/rsshub/status_movies')
+    def rss_douban_status_movies():
+        """获取从广播中提取的电影的 RSS"""
+        data = load_json_file(STATUS_FILE)
+        movies = get_unique_items(data, 'movies')
+        
+        # 为每个项目添加 URL
+        for item in movies:
+            item['url'] = item.get('url', f"https://movie.douban.com/subject/{item.get('id', '')}/")
+        
+        # 生成 RSS
+        title = "豆瓣广播电影"
+        description = "从豆瓣用户广播中提取的电影"
+        link = request.url_root + "rsshub/status_movies"
+        
+        rss_xml = generate_rss(movies, title, description, link)
+        return Response(rss_xml, mimetype='application/xml')
+
+    @app.route('/rsshub/status_tv')
+    def rss_douban_status_tv():
+        """获取从广播中提取的电视剧的 RSS"""
+        data = load_json_file(STATUS_FILE)
+        tv_shows = get_unique_items(data, 'tv_shows')
+        
+        # 为每个项目添加 URL
+        for item in tv_shows:
+            item['url'] = item.get('url', f"https://movie.douban.com/subject/{item.get('id', '')}/")
+        
+        # 生成 RSS
+        title = "豆瓣广播剧集"
+        description = "从豆瓣用户广播中提取的电视剧"
+        link = request.url_root + "rsshub/status_tv"
+        
+        rss_xml = generate_rss(tv_shows, title, description, link)
         return Response(rss_xml, mimetype='application/xml')
 
     print("已注册 RSS 相关路由") 

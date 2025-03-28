@@ -1,6 +1,6 @@
 # 豆瓣电影/剧集 API
 
-一个用于监控豆瓣电影和剧集信息并提供 API 接口的工具，支持自动同步用户想看列表、最新电影/剧集、热门电影/剧集以及冷门佳片。
+一个用于监控豆瓣电影和剧集信息并提供 API 接口的工具，支持自动同步用户想看列表、广播列表、最新电影/剧集、热门电影/剧集以及冷门佳片。
 
 [English Version](https://github.com/xiaobaiya8/douban-rss/blob/main/README_EN.md)
 
@@ -17,11 +17,12 @@
 ## 功能特点
 
 - **用户想看列表监控**：自动同步豆瓣用户想看的电影和剧集
+- **用户广播监控**：自动解析用户广播中分享的电影和剧集
 - **热门榜单监控**：提供豆瓣最新、最热和冷门佳片榜单
 - **Radarr/Sonarr 兼容**：API 接口格式兼容 Radarr 和 Sonarr 导入
 - **RSS订阅支持**：提供标准RSS订阅接口，适配各类RSS阅读器及MoviePilot
 - **自定义更新频率**：可配置的自动更新时间间隔
-- **多用户支持**：可同时监控多个豆瓣用户的想看列表
+- **多用户支持**：可同时监控多个豆瓣用户的想看列表和广播
 - **Telegram 通知**：支持通过 Telegram 发送更新通知
 - **简洁易用的 Web 配置界面**：提供用户友好的配置管理页面
 - **深色/浅色主题**：支持自动和手动深色/浅色主题切换
@@ -139,6 +140,8 @@ http://your-ip:9150
 | ---- | ---- |
 | 用户想看电影 | `/rss/movies` |
 | 用户想看剧集 | `/rss/tv` |
+| 广播电影 | `/rss/status_movies` |
+| 广播剧集 | `/rss/status_tv` |
 | 最新电影 | `/rss/new_movies` |
 | 热门电影 | `/rss/hot_movies` |
 | 热门剧集 | `/rss/hot_tv` |
@@ -151,6 +154,8 @@ http://your-ip:9150
 | 用户想看(全部) | `/rsshub/wish` |
 | 用户想看电影 | `/rsshub/movies` |
 | 用户想看剧集 | `/rsshub/tv` |
+| 广播电影 | `/rsshub/status_movies` |
+| 广播剧集 | `/rsshub/status_tv` |
 | 最新电影 | `/rsshub/new_movies` |
 | 热门电影 | `/rsshub/hot_movies` |
 | 热门剧集 | `/rsshub/hot_tv` |
