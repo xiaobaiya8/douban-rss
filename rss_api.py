@@ -110,7 +110,7 @@ def generate_rss(items, title, description, link):
 def register_rss_routes(app):
     """注册所有RSS路由"""
     
-    @app.route('/mp/wish')
+    @app.route('/rsshub/wish')
     def rss_douban_wish():
         """获取用户想看的电影和电视剧的 RSS"""
         data = load_json_file(MOVIES_FILE)
@@ -127,12 +127,12 @@ def register_rss_routes(app):
         # 生成 RSS
         title = "豆瓣用户想看"
         description = "豆瓣用户想看的电影和电视剧"
-        link = request.url_root + "mp/wish"
+        link = request.url_root + "rsshub/wish"
         
         rss_xml = generate_rss(all_items, title, description, link)
         return Response(rss_xml, mimetype='application/xml')
 
-    @app.route('/mp/movies')
+    @app.route('/rsshub/movies')
     def rss_douban_wish_movies():
         """获取用户想看的电影的 RSS"""
         data = load_json_file(MOVIES_FILE)
@@ -145,12 +145,12 @@ def register_rss_routes(app):
         # 生成 RSS
         title = "豆瓣用户想看的电影"
         description = "豆瓣用户想看的电影"
-        link = request.url_root + "mp/movies"
+        link = request.url_root + "rsshub/movies"
         
         rss_xml = generate_rss(movies, title, description, link)
         return Response(rss_xml, mimetype='application/xml')
 
-    @app.route('/mp/tv')
+    @app.route('/rsshub/tv')
     def rss_douban_wish_tv():
         """获取用户想看的电视剧的 RSS"""
         data = load_json_file(MOVIES_FILE)
@@ -163,12 +163,12 @@ def register_rss_routes(app):
         # 生成 RSS
         title = "豆瓣用户想看的电视剧"
         description = "豆瓣用户想看的电视剧"
-        link = request.url_root + "mp/tv"
+        link = request.url_root + "rsshub/tv"
         
         rss_xml = generate_rss(tv_shows, title, description, link)
         return Response(rss_xml, mimetype='application/xml')
 
-    @app.route('/mp/new_movies')
+    @app.route('/rsshub/new_movies')
     def rss_douban_new_movies():
         """获取最新电影的 RSS"""
         data = load_json_file(NEW_MOVIES_FILE)
@@ -181,12 +181,12 @@ def register_rss_routes(app):
         # 生成 RSS
         title = "豆瓣最新电影"
         description = "豆瓣最新上映的电影"
-        link = request.url_root + "mp/new_movies"
+        link = request.url_root + "rsshub/new_movies"
         
         rss_xml = generate_rss(movies, title, description, link)
         return Response(rss_xml, mimetype='application/xml')
 
-    @app.route('/mp/hot_movies')
+    @app.route('/rsshub/hot_movies')
     def rss_douban_hot_movies():
         """获取热门电影的 RSS"""
         data = load_json_file(HOT_MOVIES_FILE)
@@ -199,12 +199,12 @@ def register_rss_routes(app):
         # 生成 RSS
         title = "豆瓣热门电影"
         description = "豆瓣热门的电影"
-        link = request.url_root + "mp/hot_movies"
+        link = request.url_root + "rsshub/hot_movies"
         
         rss_xml = generate_rss(movies, title, description, link)
         return Response(rss_xml, mimetype='application/xml')
 
-    @app.route('/mp/hot_tv')
+    @app.route('/rsshub/hot_tv')
     def rss_douban_hot_tv():
         """获取热门电视剧的 RSS"""
         data = load_json_file(HOT_MOVIES_FILE)
@@ -217,12 +217,12 @@ def register_rss_routes(app):
         # 生成 RSS
         title = "豆瓣热门电视剧"
         description = "豆瓣热门的电视剧"
-        link = request.url_root + "mp/hot_tv"
+        link = request.url_root + "rsshub/hot_tv"
         
         rss_xml = generate_rss(tv_shows, title, description, link)
         return Response(rss_xml, mimetype='application/xml')
 
-    @app.route('/mp/hidden_gems_movies')
+    @app.route('/rsshub/hidden_gems_movies')
     def rss_douban_hidden_gems_movies():
         """获取冷门佳片电影的 RSS"""
         data = load_json_file(HIDDEN_GEMS_FILE)
@@ -235,7 +235,7 @@ def register_rss_routes(app):
         # 生成 RSS
         title = "豆瓣冷门佳片电影"
         description = "豆瓣冷门但评分很高的电影"
-        link = request.url_root + "mp/hidden_gems_movies"
+        link = request.url_root + "rsshub/hidden_gems_movies"
         
         rss_xml = generate_rss(movies, title, description, link)
         return Response(rss_xml, mimetype='application/xml')

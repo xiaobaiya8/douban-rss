@@ -459,42 +459,42 @@ def get_unique_items(data, item_type='movies'):
     
     return unique_items
 
-@app.route('/movies')
+@app.route('/rss/movies')
 def get_movies():
     """获取所有用户想看的电影"""
     data = load_json_file(MOVIES_FILE)
     unique_movies = get_unique_items(data, 'movies')
     return jsonify(convert_to_radarr_format(unique_movies))
 
-@app.route('/tv')
+@app.route('/rss/tv')
 def get_tv_shows():
     """获取所有用户想看的电视剧"""
     data = load_json_file(MOVIES_FILE)
     unique_shows = get_unique_items(data, 'tv_shows')
     return jsonify(convert_to_radarr_format(unique_shows, is_tv=True))
 
-@app.route('/new_movies')
+@app.route('/rss/new_movies')
 def get_new_movies():
     """获取最新电影"""
     data = load_json_file(NEW_MOVIES_FILE)
     movies = data.get('movies', [])
     return jsonify(convert_to_radarr_format(movies))
 
-@app.route('/hot_movies')
+@app.route('/rss/hot_movies')
 def get_hot_movies():
     """获取热门电影"""
     data = load_json_file(HOT_MOVIES_FILE)
     movies = data.get('movies', [])
     return jsonify(convert_to_radarr_format(movies))
 
-@app.route('/hot_tv')
+@app.route('/rss/hot_tv')
 def get_hot_tv():
     """获取热门电视剧"""
     data = load_json_file(HOT_MOVIES_FILE)
     tv_shows = data.get('tv_shows', [])
     return jsonify(convert_to_radarr_format(tv_shows, is_tv=True))
 
-@app.route('/hidden_gems_movies')
+@app.route('/rss/hidden_gems_movies')
 def get_hidden_gems_movies():
     """获取冷门佳片电影"""
     data = load_json_file(HIDDEN_GEMS_FILE)

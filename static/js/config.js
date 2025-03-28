@@ -712,4 +712,53 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 添加页面淡入效果
     document.body.classList.add('loaded');
+    
+    // 获取服务器地址
+    const serverAddressEl = document.getElementById('server-address');
+    if (serverAddressEl) {
+        const protocol = window.location.protocol;
+        const hostname = window.location.hostname;
+        const port = window.location.port;
+        const serverAddress = `${protocol}//${hostname}${port ? ':' + port : ''}`;
+        serverAddressEl.textContent = serverAddress;
+    }
+    
+    // 为所有复制按钮添加事件
+    const copyButtons = document.querySelectorAll('.copy-btn');
+    copyButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const path = this.getAttribute('data-path');
+            const protocol = window.location.protocol;
+            const hostname = window.location.hostname;
+            const port = window.location.port;
+            let textToCopy;
+            
+            if (this.id === 'copy-address-btn') {
+                textToCopy = serverAddressEl.textContent;
+            } else {
+                textToCopy = `${protocol}//${hostname}${port ? ':' + port : ''}${path}`;
+            }
+            
+            navigator.clipboard.writeText(textToCopy)
+                .then(() => {
+                    // 复制成功，修改按钮图标为成功状态
+                    const originalIcon = this.innerHTML;
+                    this.innerHTML = '<i class="bi bi-check"></i>';
+                    this.style.color = '#28a745';
+                    
+                    // 显示Toast提示
+                    showToast('复制成功！', 'success');
+                    
+                    // 1秒后恢复原始图标
+                    setTimeout(() => {
+                        this.innerHTML = originalIcon;
+                        this.style.color = '';
+                    }, 1000);
+                })
+                .catch(err => {
+                    console.error('复制失败: ', err);
+                    showToast('复制失败', 'error');
+                });
+        });
+    });
 }); 

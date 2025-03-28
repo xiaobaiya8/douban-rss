@@ -11,25 +11,45 @@
 
 ## 可用的RSS接口
 
+### 适用于RSSHub/MicroPub等RSS软件
+
 | 内容 | 接口地址 | 说明 |
 | ---- | ---- | ---- |
-| 用户想看(全部) | `/mp/wish` | 所有用户想看的电影和剧集 |
-| 用户想看电影 | `/mp/movies` | 所有用户想看的电影 |
-| 用户想看剧集 | `/mp/tv` | 所有用户想看的电视剧 |
-| 最新电影 | `/mp/new_movies` | 豆瓣最新电影 |
-| 热门电影 | `/mp/hot_movies` | 豆瓣热门电影 |
-| 热门剧集 | `/mp/hot_tv` | 豆瓣热门电视剧 |
-| 冷门佳片电影 | `/mp/hidden_gems_movies` | 豆瓣冷门但高分的电影 |
+| 用户想看(全部) | `/rsshub/wish` | 所有用户想看的电影和剧集 |
+| 用户想看电影 | `/rsshub/movies` | 所有用户想看的电影 |
+| 用户想看剧集 | `/rsshub/tv` | 所有用户想看的电视剧 |
+| 最新电影 | `/rsshub/new_movies` | 豆瓣最新电影 |
+| 热门电影 | `/rsshub/hot_movies` | 豆瓣热门电影 |
+| 热门剧集 | `/rsshub/hot_tv` | 豆瓣热门电视剧 |
+| 冷门佳片电影 | `/rsshub/hidden_gems_movies` | 豆瓣冷门但高分的电影 |
+
+### 适用于Radarr/Sonarr等自动下载软件
+
+| 内容 | 接口地址 | 说明 |
+| ---- | ---- | ---- |
+| 用户想看电影 | `/rss/movies` | 所有用户想看的电影 |
+| 用户想看剧集 | `/rss/tv` | 所有用户想看的电视剧 |
+| 最新电影 | `/rss/new_movies` | 豆瓣最新电影 |
+| 热门电影 | `/rss/hot_movies` | 豆瓣热门电影 |
+| 热门剧集 | `/rss/hot_tv` | 豆瓣热门电视剧 |
+| 冷门佳片电影 | `/rss/hidden_gems_movies` | 豆瓣冷门但高分的电影 |
 
 ## 使用方法
 
 1. 启动豆瓣API服务后，RSS功能会自动启用
-2. 在您的RSS阅读器中，添加订阅源：`http://您的服务器IP:9150/mp/路径`
-   例如：`http://192.168.1.100:9150/mp/movies`
-3. 订阅成功后，您将看到相应的电影/剧集列表，包含标题、封面图片和评分等信息
+
+2. 在RSS阅读器中使用：
+   - 添加订阅源：`http://您的服务器IP:9150/rsshub/路径`
+   - 例如：`http://192.168.1.100:9150/rsshub/movies`
+
+3. 在Radarr/Sonarr中使用：
+   - 添加列表：`http://您的服务器IP:9150/rss/路径`
+   - 例如：`http://192.168.1.100:9150/rss/movies`
 
 ## 技术说明
 
+- `/rsshub/` 路径返回XML格式，适合RSS阅读器订阅
+- `/rss/` 路径返回JSON格式，适合Radarr/Sonarr导入
 - RSS数据使用标准的XML格式，包含符合规范的channel和item元素
 - 支持atom:link和content:encoded扩展，提供更丰富的内容展示
 - 每个条目都提供了链接到豆瓣原始页面的URL

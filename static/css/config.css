@@ -1464,4 +1464,48 @@ body.dark-mode .highlight {
 .api-section-header td {
     padding: 10px;
     text-align: left;
+}
+
+/* 添加复制按钮样式 */
+.copy-container {
+    display: flex;
+    align-items: center;
+}
+
+.copy-btn {
+    background: none;
+    border: none;
+    color: #666;
+    cursor: pointer;
+    margin-left: 5px;
+    padding: 2px 5px;
+    font-size: 14px;
+    transition: color 0.2s;
+}
+
+.copy-btn:hover {
+    color: #007bff;
+}
+
+.dark-mode .copy-btn {
+    color: #aaa;
+}
+
+.dark-mode .copy-btn:hover {
+    color: #4dabf7;
+}
+
+#copy-address-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    margin-left: 5px;
+    padding: 2px 5px;
+    font-size: 14px;
+    transition: color 0.2s;
+    vertical-align: middle;
+}
+
+#server-address {
+    font-weight: bold;
 } 

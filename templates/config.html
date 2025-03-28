@@ -198,65 +198,70 @@
                                 </tr>
                             </thead>
                             <tbody>
+                                <tr class="api-section-header">
+                                    <td colspan="2"><i class="bi bi-code-slash"></i> <strong>Radarr/Sonarr接口</strong></td>
+                                </tr>
                                 <tr>
                                     <td><i class="bi bi-film"></i> 用户想看电影</td>
-                                    <td><code>/movies</code></td>
+                                    <td><div class="copy-container"><code>/rss/movies</code><button class="copy-btn" data-path="/rss/movies"><i class="bi bi-clipboard"></i></button></div></td>
                                 </tr>
                                 <tr>
                                     <td><i class="bi bi-tv"></i> 用户想看剧集</td>
-                                    <td><code>/tv</code></td>
+                                    <td><div class="copy-container"><code>/rss/tv</code><button class="copy-btn" data-path="/rss/tv"><i class="bi bi-clipboard"></i></button></div></td>
                                 </tr>
                                 <tr>
                                     <td><i class="bi bi-film"></i> 最新电影</td>
-                                    <td><code>/new_movies</code></td>
+                                    <td><div class="copy-container"><code>/rss/new_movies</code><button class="copy-btn" data-path="/rss/new_movies"><i class="bi bi-clipboard"></i></button></div></td>
                                 </tr>
                                 <tr>
                                     <td><i class="bi bi-film"></i> 热门电影</td>
-                                    <td><code>/hot_movies</code></td>
+                                    <td><div class="copy-container"><code>/rss/hot_movies</code><button class="copy-btn" data-path="/rss/hot_movies"><i class="bi bi-clipboard"></i></button></div></td>
                                 </tr>
                                 <tr>
                                     <td><i class="bi bi-tv"></i> 热门剧集</td>
-                                    <td><code>/hot_tv</code></td>
+                                    <td><div class="copy-container"><code>/rss/hot_tv</code><button class="copy-btn" data-path="/rss/hot_tv"><i class="bi bi-clipboard"></i></button></div></td>
                                 </tr>
                                 <tr>
                                     <td><i class="bi bi-film"></i> 冷门佳片电影</td>
-                                    <td><code>/hidden_gems_movies</code></td>
+                                    <td><div class="copy-container"><code>/rss/hidden_gems_movies</code><button class="copy-btn" data-path="/rss/hidden_gems_movies"><i class="bi bi-clipboard"></i></button></div></td>
                                 </tr>
                                 <!-- 添加RSS路由 -->
                                 <tr class="api-section-header">
-                                    <td colspan="2"><i class="bi bi-rss"></i> <strong>RSS订阅接口</strong></td>
+                                    <td colspan="2"><i class="bi bi-rss"></i> <strong>RSSHub/MicroPub订阅接口</strong></td>
                                 </tr>
                                 <tr>
                                     <td><i class="bi bi-film"></i><i class="bi bi-rss"></i> 用户想看电影</td>
-                                    <td><code>/mp/movies</code></td>
+                                    <td><div class="copy-container"><code>/rsshub/movies</code><button class="copy-btn" data-path="/rsshub/movies"><i class="bi bi-clipboard"></i></button></div></td>
                                 </tr>
                                 <tr>
                                     <td><i class="bi bi-tv"></i><i class="bi bi-rss"></i> 用户想看剧集</td>
-                                    <td><code>/mp/tv</code></td>
+                                    <td><div class="copy-container"><code>/rsshub/tv</code><button class="copy-btn" data-path="/rsshub/tv"><i class="bi bi-clipboard"></i></button></div></td>
                                 </tr>
                                 <tr>
                                     <td><i class="bi bi-film"></i><i class="bi bi-rss"></i> 最新电影</td>
-                                    <td><code>/mp/new_movies</code></td>
+                                    <td><div class="copy-container"><code>/rsshub/new_movies</code><button class="copy-btn" data-path="/rsshub/new_movies"><i class="bi bi-clipboard"></i></button></div></td>
                                 </tr>
                                 <tr>
                                     <td><i class="bi bi-film"></i><i class="bi bi-rss"></i> 热门电影</td>
-                                    <td><code>/mp/hot_movies</code></td>
+                                    <td><div class="copy-container"><code>/rsshub/hot_movies</code><button class="copy-btn" data-path="/rsshub/hot_movies"><i class="bi bi-clipboard"></i></button></div></td>
                                 </tr>
                                 <tr>
                                     <td><i class="bi bi-tv"></i><i class="bi bi-rss"></i> 热门剧集</td>
-                                    <td><code>/mp/hot_tv</code></td>
+                                    <td><div class="copy-container"><code>/rsshub/hot_tv</code><button class="copy-btn" data-path="/rsshub/hot_tv"><i class="bi bi-clipboard"></i></button></div></td>
                                 </tr>
                                 <tr>
                                     <td><i class="bi bi-film"></i><i class="bi bi-rss"></i> 冷门佳片电影</td>
-                                    <td><code>/mp/hidden_gems_movies</code></td>
+                                    <td><div class="copy-container"><code>/rsshub/hidden_gems_movies</code><button class="copy-btn" data-path="/rsshub/hidden_gems_movies"><i class="bi bi-clipboard"></i></button></div></td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
                     <div class="api-note">
-                        <i class="bi bi-info-circle"></i> 所有API接口均返回JSON格式数据，可直接用于Radarr/Sonarr导入。
+                        <i class="bi bi-info-circle"></i> <strong>Radarr/Sonarr接口</strong>：返回JSON格式数据，路径以 <code>/rss/</code> 开头，适用于Radarr/Sonarr等自动下载软件。
                         <br>
-                        <i class="bi bi-rss"></i> RSS订阅接口返回XML格式，可用于RSS阅读器订阅。订阅地址为：<code>http://你的服务器地址:9150/mp/路径</code>
+                        <i class="bi bi-rss"></i> <strong>RSSHub接口</strong>：返回XML格式数据，路径以 <code>/rsshub/</code> 开头，适用于RSS阅读器和MicroPub等软件。
+                        <br>
+                        <i class="bi bi-globe"></i> 当前服务器地址：<code id="server-address">正在获取...</code><button class="copy-btn" id="copy-address-btn"><i class="bi bi-clipboard"></i></button>
                     </div>
                 </div>
             </div>
