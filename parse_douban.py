@@ -389,13 +389,19 @@ def fetch_user_data(user_id, cookie):
         print(f"处理用户 {user_id} 时出错: {e}")
         raise
 
-def send_telegram_message(message, config):
+def send_telegram_message(message, config, has_new_content=False):
     """发送 Telegram 消息"""
     if not config.get('telegram', {}).get('enabled'):
         return
     
     bot_token = config['telegram']['bot_token']
     chat_id = config['telegram']['chat_id']
+    notify_mode = config['telegram'].get('notify_mode', 'always')
+    
+    # 检查是否应该发送消息（基于通知模式）
+    if notify_mode == 'new_only' and not has_new_content:
+        print("没有新内容，根据通知设置跳过发送消息")
+        return
     
     # 检查 bot_token 和 chat_id 是否有效
     if not bot_token or bot_token == 'your_bot_token_here' or \
@@ -477,13 +483,13 @@ def main():
         if not cookie:
             message = "❌ Cookie 未配置，请先配置 Cookie"
             print(message)
-            send_telegram_message(message, config)
+            send_telegram_message(message, config, False)
             return
             
         if not check_cookie_valid(cookie):
             message = "❌ Cookie 已失效，请更新 Cookie"
             print(message)
-            send_telegram_message(message, config)
+            send_telegram_message(message, config, False)
             return
         
         print("\n开始获取豆瓣想看数据...")
@@ -536,11 +542,18 @@ def main():
                 print(f"处理用户 {user_id} 时出错: {e}")
                 continue
         
-        # 只在有更新时才发送消息
+        # 构建消息内容，但根据情况决定是否发送
+        # 无论是否有更新，都构建消息
+        message = "🎬 <b>豆瓣想看更新提醒</b>\n\n"
+        
+        if not any_updates:
+            # 没有新内容时的消息
+            message += "⚠️ 本次更新没有发现新的想看内容。\n\n"
+        
+        message += f"更新时间: {time.strftime('%Y-%m-%d %H:%M:%S')}\n"
+        
         if any_updates and new_items:
-            # 生成通知消息
-            message = "🎬 <b>豆瓣想看更新提醒</b>\n\n"
-            
+            # 有新内容时的消息内容
             for item in new_items:
                 if item['titles']:
                     message += f"用户 {item['user']} 新增想看:\n"
@@ -583,16 +596,25 @@ def main():
                             else:
                                 message += f"• {title}\n"
                         message += "\n"
+        else:
+            # 添加统计信息
+            all_data = load_all_data()
+            total_movies = sum(len(user_data.get('movies', [])) for user_data in all_data.values())
+            total_tv_shows = sum(len(user_data.get('tv_shows', [])) for user_data in all_data.values())
             
-            # 发送 Telegram 通知
-            send_telegram_message(message, config)
+            message += f"当前总计追踪:\n"
+            message += f"• {total_movies} 部电影\n"
+            message += f"• {total_tv_shows} 部剧集\n"
+        
+        # 发送 Telegram 通知
+        send_telegram_message(message, config, any_updates)
         
         print("\n数据获取完成！")
         
     except Exception as e:
         error_message = f"❌ 获取豆瓣想看数据时出错: {str(e)}"
         print(error_message)
-        send_telegram_message(error_message, config)
+        send_telegram_message(error_message, config, False)
     finally:
         # 无论成功还是失败，都清理临时文件
         cleanup_temp_files()

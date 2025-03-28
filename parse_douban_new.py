@@ -201,14 +201,21 @@ def check_cookie_valid(cookie):
         print(f"\n❌ 验证 Cookie 时出错: {e}")
         return False
 
-def send_telegram_message(message, config):
+def send_telegram_message(message, config, has_new_content=False):
     """发送 Telegram 消息"""
     if not config.get('telegram', {}).get('enabled'):
         return
     
     bot_token = config['telegram']['bot_token']
     chat_id = config['telegram']['chat_id']
+    notify_mode = config['telegram'].get('notify_mode', 'always')
     
+    # 检查是否应该发送消息（基于通知模式）
+    if notify_mode == 'new_only' and not has_new_content:
+        print("没有新内容，根据通知设置跳过发送消息")
+        return
+    
+    # 检查 bot_token 和 chat_id 是否有效
     if not bot_token or bot_token == 'your_bot_token_here' or \
        not chat_id or chat_id == 'your_chat_id_here':
         print("Telegram 配置无效，跳过发送消息")
@@ -221,15 +228,28 @@ def send_telegram_message(message, config):
             "text": message,
             "parse_mode": "HTML"
         }
-        response = requests.post(url, json=data, timeout=10)
+        response = requests.post(url, json=data, timeout=10)  # 添加超时设置
         
         if response.status_code == 200:
             print("Telegram 消息发送成功")
         else:
-            print(f"发送 Telegram 消息失败: {response.json().get('description', '未知错误')}")
+            error_msg = response.json().get('description', '未知错误')
+            print(f"发送 Telegram 消息失败: {error_msg}")
             
+            # 如果是认证错误，给出更详细的提示
+            if response.status_code == 401:
+                print("Bot Token 无效，请检查是否正确配置")
+            elif response.status_code == 404:
+                print("Bot Token 格式错误或已失效")
+            elif response.status_code == 400:
+                print("Chat ID 无效，请检查是否正确配置")
+                
+    except requests.exceptions.Timeout:
+        print("发送 Telegram 消息超时")
+    except requests.exceptions.RequestException as e:
+        print(f"发送 Telegram 消息出错: {e}")
     except Exception as e:
-        print(f"发送 Telegram 消息时出错: {e}")
+        print(f"发送 Telegram 消息时发生未知错误: {e}")
 
 def get_subject_info(subject_id, cookie, max_retries=3):
     """获取条目信息"""
@@ -425,13 +445,13 @@ def main():
         if not cookie:
             message = "❌ Cookie 未配置，请先配置 Cookie"
             print(message)
-            send_telegram_message(message, config)
+            send_telegram_message(message, config, False)
             return
             
         if not check_cookie_valid(cookie):
             message = "❌ Cookie 已失效，请更新 Cookie"
             print(message)
-            send_telegram_message(message, config)
+            send_telegram_message(message, config, False)
             return
         
         print("\n开始获取豆瓣最新数据...")
@@ -443,56 +463,67 @@ def main():
         movies_count = len(data['movies'])
         tv_shows_count = len(data['tv_shows'])
         
-        # 只在有更新时才发送消息
-        if data.get('has_updates', False):
-            # 生成通知消息
-            message = (
-                f"🎬 <b>豆瓣最新数据更新完成</b>\n\n"
-                f"更新时间: {data['update_time']}\n"
-                f"总电影数: {movies_count} 部\n"
-                f"总剧集数: {tv_shows_count} 部\n\n"
-            )
-            
-            # 新增内容：添加新更新的电影信息
-            if data.get('has_updates', False):
-                message += "<b>新增电影:</b>\n"
-                new_movies = [movie for movie in data['movies'] if not movie.get('notified', False)]
-                for movie in new_movies[:5]:  # 最多显示5部新电影
-                    movie_link = movie.get('url', f"https://movie.douban.com/subject/{movie.get('id', '')}/")
-                    message += f"• <a href='{movie_link}'>{movie['title']}</a> - ⭐{movie['rating']}\n"
-                    movie['notified'] = True  # 标记为已通知
-                    
-                # 如果新电影超过5部，添加"等"字样
-                if len(new_movies) > 5:
-                    message += f"等 {len(new_movies)} 部新电影\n"
-                    
-                message += "\n"
-                
-            message += "<b>最新电影 TOP 5:</b>\n"
-            
-            # 添加最新电影信息
-            for i, movie in enumerate(sorted(data['movies'], key=lambda x: float(x['rating'] or 0), reverse=True)[:5], 1):
+        has_updates = data.get('has_updates', False)
+        
+        # 无论是否有更新，都构建消息，但根据notify_mode决定是否发送
+        # 生成通知消息
+        message = (
+            f"🎬 <b>豆瓣最新数据更新完成</b>\n\n"
+        )
+
+        if not has_updates:
+            # 没有新内容时的消息
+            message += "⚠️ 本次更新没有发现新的最新电影内容。\n\n"
+        
+        message += (
+            f"更新时间: {data['update_time']}\n"
+            f"总电影数: {movies_count} 部\n"
+            f"总剧集数: {tv_shows_count} 部\n\n"
+        )
+        
+        # 添加新更新的电影信息
+        if has_updates:
+            message += "<b>新增电影:</b>\n"
+            new_movies = [movie for movie in data['movies'] if not movie.get('notified', False)]
+            for movie in new_movies[:5]:  # 最多显示5部新电影
                 movie_link = movie.get('url', f"https://movie.douban.com/subject/{movie.get('id', '')}/")
-                message += f"{i}. <a href='{movie_link}'>{movie['title']}</a> - ⭐{movie['rating']}\n"
+                message += f"• <a href='{movie_link}'>{movie['title']}</a> - ⭐{movie['rating']}\n"
+                movie['notified'] = True  # 标记为已通知
                 
-            # 只有在有电视剧时才显示电视剧部分
-            if tv_shows_count > 0:
-                message += "\n<b>最新剧集 TOP 5:</b>\n"
+            # 如果新电影超过5部，添加"等"字样
+            if len(new_movies) > 5:
+                message += f"等 {len(new_movies)} 部新电影\n"
                 
-                # 添加最新剧集信息
-                for i, tv in enumerate(sorted(data['tv_shows'], key=lambda x: float(x['rating'] or 0), reverse=True)[:5], 1):
-                    tv_link = tv.get('url', f"https://movie.douban.com/subject/{tv.get('id', '')}/")
-                    message += f"{i}. <a href='{tv_link}'>{tv['title']}</a> - ⭐{tv['rating']}\n"
+            message += "\n"
             
-            # 发送 Telegram 通知
-            send_telegram_message(message, config)
+            # 保存数据，确保notified状态被保存
+            save_new_data(data)
+            
+        message += "<b>最新电影 TOP 5:</b>\n"
+        
+        # 添加最新电影信息
+        for i, movie in enumerate(sorted(data['movies'], key=lambda x: float(x['rating'] or 0), reverse=True)[:5], 1):
+            movie_link = movie.get('url', f"https://movie.douban.com/subject/{movie.get('id', '')}/")
+            message += f"{i}. <a href='{movie_link}'>{movie['title']}</a> - ⭐{movie['rating']}\n"
+            
+        # 只有在有电视剧时才显示电视剧部分
+        if tv_shows_count > 0:
+            message += "\n<b>最新剧集 TOP 5:</b>\n"
+            
+            # 添加最新剧集信息
+            for i, tv in enumerate(sorted(data['tv_shows'], key=lambda x: float(x['rating'] or 0), reverse=True)[:5], 1):
+                tv_link = tv.get('url', f"https://movie.douban.com/subject/{tv.get('id', '')}/")
+                message += f"{i}. <a href='{tv_link}'>{tv['title']}</a> - ⭐{tv['rating']}\n"
+        
+        # 发送 Telegram 通知
+        send_telegram_message(message, config, has_updates)
         
         print(f"\n数据获取完成！总计 {movies_count} 部最新电影和 {tv_shows_count} 部最新电视剧")
         
     except Exception as e:
         error_message = f"❌ 获取豆瓣最新数据时出错: {str(e)}"
         print(error_message)
-        send_telegram_message(error_message, config)
+        send_telegram_message(error_message, config, False)
 
 if __name__ == "__main__":
     main() 

@@ -355,7 +355,8 @@ def save_config_handler():
         telegram_config = {
             "enabled": request.form.get('telegram_enabled') == 'true',
             "bot_token": request.form.get('telegram_bot_token', ''),
-            "chat_id": request.form.get('telegram_chat_id', '')
+            "chat_id": request.form.get('telegram_chat_id', ''),
+            "notify_mode": request.form.get('telegram_notify_mode', 'always')
         }
         
         config = {

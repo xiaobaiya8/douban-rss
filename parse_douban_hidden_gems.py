@@ -201,13 +201,19 @@ def check_cookie_valid(cookie):
         print(f"\n❌ 验证 Cookie 时出错: {e}")
         return False
 
-def send_telegram_message(message, config):
+def send_telegram_message(message, config, has_new_content=False):
     """发送 Telegram 消息"""
     if not config.get('telegram', {}).get('enabled'):
         return
     
     bot_token = config['telegram']['bot_token']
     chat_id = config['telegram']['chat_id']
+    notify_mode = config['telegram'].get('notify_mode', 'always')
+    
+    # 检查是否应该发送消息（基于通知模式）
+    if notify_mode == 'new_only' and not has_new_content:
+        print("没有新内容，根据通知设置跳过发送消息")
+        return
     
     if not bot_token or bot_token == 'your_bot_token_here' or \
        not chat_id or chat_id == 'your_chat_id_here':
@@ -226,10 +232,23 @@ def send_telegram_message(message, config):
         if response.status_code == 200:
             print("Telegram 消息发送成功")
         else:
-            print(f"发送 Telegram 消息失败: {response.json().get('description', '未知错误')}")
+            error_msg = response.json().get('description', '未知错误')
+            print(f"发送 Telegram 消息失败: {error_msg}")
             
+            # 如果是认证错误，给出更详细的提示
+            if response.status_code == 401:
+                print("Bot Token 无效，请检查是否正确配置")
+            elif response.status_code == 404:
+                print("Bot Token 格式错误或已失效")
+            elif response.status_code == 400:
+                print("Chat ID 无效，请检查是否正确配置")
+                
+    except requests.exceptions.Timeout:
+        print("发送 Telegram 消息超时")
+    except requests.exceptions.RequestException as e:
+        print(f"发送 Telegram 消息出错: {e}")
     except Exception as e:
-        print(f"发送 Telegram 消息时出错: {e}")
+        print(f"发送 Telegram 消息时发生未知错误: {e}")
 
 def extract_subject_id(url):
     """从 URL 中提取豆瓣 ID"""
@@ -402,13 +421,13 @@ def main():
         if not cookie:
             message = "❌ Cookie 未配置，请先配置 Cookie"
             print(message)
-            send_telegram_message(message, config)
+            send_telegram_message(message, config, False)
             return
             
         if not check_cookie_valid(cookie):
             message = "❌ Cookie 已失效，请更新 Cookie"
             print(message)
-            send_telegram_message(message, config)
+            send_telegram_message(message, config, False)
             return
         
         print("\n开始获取豆瓣冷门佳片数据...")
@@ -423,13 +442,22 @@ def main():
         # 生成通知消息
         message = (
             f"🎬 <b>豆瓣冷门佳片数据更新完成</b>\n\n"
+        )
+        
+        has_updates = data.get('has_updates', False)
+        
+        if not has_updates:
+            # 没有新内容时的消息
+            message += "⚠️ 本次更新没有发现新的冷门佳片内容。\n\n"
+        
+        message += (
             f"更新时间: {data['update_time']}\n"
             f"总佳片数: {movies_count} 部\n"
             f"总剧集数: {tv_shows_count} 部\n\n"
         )
         
         # 新增内容：添加新更新的电影信息
-        if data.get('has_updates', False):
+        if has_updates:
             message += "<b>新增佳片:</b>\n"
             new_movies = [movie for movie in data['movies'] if not movie.get('notified', False)]
             for movie in new_movies[:5]:  # 最多显示5部新电影
@@ -476,14 +504,14 @@ def main():
                 message += f"{i}. <a href='{tv_link}'>{tv['title']}</a> - ⭐{tv['rating']}\n"
         
         # 发送 Telegram 通知
-        send_telegram_message(message, config)
+        send_telegram_message(message, config, has_updates)
         
         print(f"\n数据获取完成！总计 {movies_count} 部冷门佳片和 {tv_shows_count} 部冷门剧集")
         
     except Exception as e:
         error_message = f"❌ 获取豆瓣冷门佳片数据时出错: {str(e)}"
         print(error_message)
-        send_telegram_message(error_message, config)
+        send_telegram_message(error_message, config, False)
 
 if __name__ == "__main__":
     main() 

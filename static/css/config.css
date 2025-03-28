@@ -1530,4 +1530,61 @@ body.dark-mode .highlight {
 
 #server-address {
     font-weight: bold;
+}
+
+.notification-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 10px 0;
+}
+
+.radio-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 8px 10px;
+    border-radius: var(--border-radius);
+    transition: var(--transition);
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.radio-label:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.radio-label input[type="radio"] {
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+.radio-label span {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.radio-label i {
+    color: var(--primary-color);
+    transition: var(--transition);
+}
+
+/* 深色模式样式 */
+body.dark-mode .radio-label {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+body.dark-mode .radio-label:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* 自动深色模式 */
+@media (prefers-color-scheme: dark) {
+    body:not(.light-mode) .radio-label {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+    
+    body:not(.light-mode) .radio-label:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
 } 

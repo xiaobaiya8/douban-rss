@@ -133,6 +133,21 @@
                                    value="{{ config.get('telegram', {}).get('chat_id', '') }}"
                                    placeholder="输入你的 Chat ID">
                         </div>
+                        <div class="input-group">
+                            <label>通知频率</label>
+                            <div class="notification-options">
+                                <label class="radio-label">
+                                    <input type="radio" name="telegram_notify_mode" value="new_only" 
+                                           {{ 'checked' if config.get('telegram', {}).get('notify_mode') == 'new_only' else '' }}>
+                                    <span><i class="bi bi-filter-circle"></i> 仅当有新内容时通知</span>
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" name="telegram_notify_mode" value="always" 
+                                           {{ 'checked' if config.get('telegram', {}).get('notify_mode') != 'new_only' else '' }}>
+                                    <span><i class="bi bi-bell"></i> 每次更新都通知</span>
+                                </label>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

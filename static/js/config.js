@@ -126,23 +126,38 @@ function updateUserNote(index, note) {
 function saveConfig(successCallback) {
     const formData = new FormData();
     
-    // 添加用户配置
+    // 收集表单数据
+    const cookieInput = document.getElementById('cookie');
+    const intervalInput = document.getElementById('update_interval');
+    const telegramEnabled = document.getElementById('telegram_enabled');
+    const telegramBotToken = document.getElementById('telegram_bot_token');
+    const telegramChatId = document.getElementById('telegram_chat_id');
+    const telegramNotifyMode = document.querySelector('input[name="telegram_notify_mode"]:checked');
+    
+    // 设置用户数据
     formData.set('user_ids', users.map(u => u.id).join(','));
     formData.set('user_notes', users.map(u => u.note || '').join(','));
     
-    // 添加Cookie配置
-    const cookieElement = document.getElementById('cookie');
-    if (cookieElement) {
-        formData.set('cookie', cookieElement.value);
+    // 设置Cookie
+    if (cookieInput) formData.set('cookie', cookieInput.value);
+    
+    // 设置更新间隔
+    if (intervalInput) formData.set('update_interval', intervalInput.value);
+    
+    // 设置Telegram选项
+    if (telegramEnabled) formData.set('telegram_enabled', telegramEnabled.checked);
+    if (telegramBotToken) formData.set('telegram_bot_token', telegramBotToken.value);
+    if (telegramChatId) formData.set('telegram_chat_id', telegramChatId.value);
+    
+    // 确保即使config中原本没有telegram_notify_mode也能正确保存
+    if (telegramNotifyMode) {
+        formData.set('telegram_notify_mode', telegramNotifyMode.value);
+    } else {
+        // 如果没有选中任何模式，默认设为'always'
+        formData.set('telegram_notify_mode', 'always');
     }
     
-    // 添加更新间隔配置
-    const intervalElement = document.getElementById('update_interval');
-    if (intervalElement) {
-        formData.set('update_interval', intervalElement.value);
-    }
-    
-    // 添加监控配置
+    // 设置监控选项
     const monitorUserWish = document.getElementById('monitor_user_wish');
     const monitorLatest = document.getElementById('monitor_latest');
     const monitorPopular = document.getElementById('monitor_popular');
@@ -152,15 +167,6 @@ function saveConfig(successCallback) {
     if (monitorLatest) formData.set('monitor_latest', monitorLatest.checked);
     if (monitorPopular) formData.set('monitor_popular', monitorPopular.checked);
     if (monitorHiddenGems) formData.set('monitor_hidden_gems', monitorHiddenGems.checked);
-    
-    // 添加 Telegram 配置
-    const telegramEnabled = document.getElementById('telegram_enabled');
-    const telegramBotToken = document.getElementById('telegram_bot_token');
-    const telegramChatId = document.getElementById('telegram_chat_id');
-    
-    if (telegramEnabled) formData.set('telegram_enabled', telegramEnabled.checked);
-    if (telegramBotToken) formData.set('telegram_bot_token', telegramBotToken.value);
-    if (telegramChatId) formData.set('telegram_chat_id', telegramChatId.value);
     
     // 显示保存中状态
     const saveIndicator = document.createElement('div');
@@ -683,6 +689,15 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }, 1000));
     }
+    
+    // 添加通知模式单选按钮的事件监听
+    document.querySelectorAll('input[name="telegram_notify_mode"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            saveConfig(() => {
+                showToast('通知模式已更新');
+            });
+        });
+    });
     
     // 从本地存储恢复上次打开的tab
     const lastTab = localStorage.getItem('douban_config_active_tab');
