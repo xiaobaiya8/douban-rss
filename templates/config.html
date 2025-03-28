@@ -26,11 +26,11 @@
             <div id="parserStatus" class="status-info status-idle">
                 <div class="status-icon"><i class="bi bi-check-circle"></i></div>
                 <div class="status-text">
-                    状态: 空闲
-                    <br>
-                    上次更新: <span id="lastRunTime">从未运行</span>
-                    <br>
-                    下次更新: <span id="nextRunTime">未设置</span>
+                状态: 空闲
+                <br>
+                上次更新: <span id="lastRunTime">从未运行</span>
+                <br>
+                下次更新: <span id="nextRunTime">未设置</span>
                 </div>
             </div>
         </div>
@@ -144,8 +144,8 @@
                 <label>更新间隔（秒）</label>
                 <div class="input-with-icon">
                     <i class="bi bi-clock"></i>
-                    <input type="number" id="update_interval" name="update_interval" 
-                           value="{{ config.get('update_interval', 3600) }}" min="300">
+                <input type="number" id="update_interval" name="update_interval" 
+                       value="{{ config.get('update_interval', 3600) }}" min="300">
                 </div>
                 <div class="help-text">最小间隔 300 秒（5分钟）</div>
             </div>
@@ -160,21 +160,21 @@
                         <label>当前密码</label>
                         <div class="input-with-icon">
                             <i class="bi bi-lock"></i>
-                            <input type="password" id="current_password">
+                        <input type="password" id="current_password">
                         </div>
                     </div>
                     <div class="input-group">
                         <label>新密码</label>
                         <div class="input-with-icon">
                             <i class="bi bi-lock-fill"></i>
-                            <input type="password" id="new_password">
+                        <input type="password" id="new_password">
                         </div>
                     </div>
                     <div class="input-group">
                         <label>确认新密码</label>
                         <div class="input-with-icon">
                             <i class="bi bi-lock-fill"></i>
-                            <input type="password" id="confirm_password">
+                        <input type="password" id="confirm_password">
                         </div>
                     </div>
                     <button type="button" class="btn-primary" onclick="changePassword()"><i class="bi bi-check-lg"></i> 修改密码</button>
@@ -211,10 +211,6 @@
                                     <td><code>/new_movies</code></td>
                                 </tr>
                                 <tr>
-                                    <td><i class="bi bi-tv"></i> 最新剧集</td>
-                                    <td><code>/new_tv</code></td>
-                                </tr>
-                                <tr>
                                     <td><i class="bi bi-film"></i> 热门电影</td>
                                     <td><code>/hot_movies</code></td>
                                 </tr>
@@ -226,15 +222,41 @@
                                     <td><i class="bi bi-film"></i> 冷门佳片电影</td>
                                     <td><code>/hidden_gems_movies</code></td>
                                 </tr>
+                                <!-- 添加RSS路由 -->
+                                <tr class="api-section-header">
+                                    <td colspan="2"><i class="bi bi-rss"></i> <strong>RSS订阅接口</strong></td>
+                                </tr>
                                 <tr>
-                                    <td><i class="bi bi-tv"></i> 冷门佳片剧集</td>
-                                    <td><code>/hidden_gems_tv</code></td>
+                                    <td><i class="bi bi-film"></i><i class="bi bi-rss"></i> 用户想看电影</td>
+                                    <td><code>/mp/movies</code></td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-tv"></i><i class="bi bi-rss"></i> 用户想看剧集</td>
+                                    <td><code>/mp/tv</code></td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-film"></i><i class="bi bi-rss"></i> 最新电影</td>
+                                    <td><code>/mp/new_movies</code></td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-film"></i><i class="bi bi-rss"></i> 热门电影</td>
+                                    <td><code>/mp/hot_movies</code></td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-tv"></i><i class="bi bi-rss"></i> 热门剧集</td>
+                                    <td><code>/mp/hot_tv</code></td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-film"></i><i class="bi bi-rss"></i> 冷门佳片电影</td>
+                                    <td><code>/mp/hidden_gems_movies</code></td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
                     <div class="api-note">
                         <i class="bi bi-info-circle"></i> 所有API接口均返回JSON格式数据，可直接用于Radarr/Sonarr导入。
+                        <br>
+                        <i class="bi bi-rss"></i> RSS订阅接口返回XML格式，可用于RSS阅读器订阅。订阅地址为：<code>http://你的服务器地址:9150/mp/路径</code>
                     </div>
                 </div>
             </div>

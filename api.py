@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, render_template, request, session, redirect, url_for
+from flask import Flask, jsonify, render_template, request, session, redirect, url_for, Response
 import json
 import re
 import os
@@ -480,13 +480,6 @@ def get_new_movies():
     movies = data.get('movies', [])
     return jsonify(convert_to_radarr_format(movies))
 
-@app.route('/new_tv')
-def get_new_tv():
-    """获取最新电视剧"""
-    data = load_json_file(NEW_MOVIES_FILE)
-    tv_shows = data.get('tv_shows', [])
-    return jsonify(convert_to_radarr_format(tv_shows, is_tv=True))
-
 @app.route('/hot_movies')
 def get_hot_movies():
     """获取热门电影"""
@@ -507,13 +500,6 @@ def get_hidden_gems_movies():
     data = load_json_file(HIDDEN_GEMS_FILE)
     movies = data.get('movies', [])
     return jsonify(convert_to_radarr_format(movies))
-
-@app.route('/hidden_gems_tv')
-def get_hidden_gems_tv():
-    """获取冷门佳片电视剧"""
-    data = load_json_file(HIDDEN_GEMS_FILE)
-    tv_shows = data.get('tv_shows', [])
-    return jsonify(convert_to_radarr_format(tv_shows, is_tv=True))
 
 @app.route('/health')
 def health_check():
@@ -628,6 +614,14 @@ def restart_scheduler():
         })
 
 if __name__ == '__main__':
+    # 导入RSS模块（如果存在）
+    try:
+        from rss_api import register_rss_routes
+        register_rss_routes(app)
+        print("RSS 模块已加载")
+    except ImportError:
+        print("RSS 模块未找到，跳过加载")
+    
     # 启动定时器
     start_scheduler()
     

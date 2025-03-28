@@ -65,7 +65,6 @@ Once successfully configured, the system provides the following API interfaces:
 - `/movies` - User's movie wishlist
 - `/tv` - User's TV show wishlist
 - `/new_movies` - Latest movies
-- `/new_tv` - Latest TV shows
 - `/hot_movies` - Popular movies
 - `/hot_tv` - Popular TV shows
 - `/hidden_gems_movies` - Hidden gem movies

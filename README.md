@@ -65,7 +65,6 @@ http://your-ip:9150
 - `/movies` - 用户想看电影列表
 - `/tv` - 用户想看剧集列表
 - `/new_movies` - 最新电影
-- `/new_tv` - 最新剧集
 - `/hot_movies` - 热门电影
 - `/hot_tv` - 热门剧集
 - `/hidden_gems_movies` - 冷门佳片电影

@@ -1448,4 +1448,20 @@ body.dark-mode .highlight {
         color: #4dabf7;
         background-color: rgba(75, 171, 247, 0.15);
     }
+}
+
+/* 添加API相关样式 */
+/* RSS 相关样式 */
+.api-section-header {
+    background-color: #f5f5f5;
+    font-weight: bold;
+}
+
+.dark-mode .api-section-header {
+    background-color: #3a3a3a;
+}
+
+.api-section-header td {
+    padding: 10px;
+    text-align: left;
 } 

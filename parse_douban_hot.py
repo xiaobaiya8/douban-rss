@@ -457,29 +457,63 @@ def main():
         movies_count = len(data['movies'])
         tv_shows_count = len(data['tv_shows'])
         
-        # 只在有更新时才发送消息
+        # 生成通知消息
+        message = (
+            f"🎬 <b>豆瓣热门数据更新完成</b>\n\n"
+            f"更新时间: {data['update_time']}\n"
+            f"总电影数: {movies_count} 部\n"
+            f"总剧集数: {tv_shows_count} 部\n\n"
+        )
+        
+        # 新增内容：添加新更新的电影信息
         if data.get('has_updates', False):
-            # 生成通知消息
-            message = (
-                f"🎬 <b>豆瓣热门数据更新完成</b>\n\n"
-                f"更新时间: {data['update_time']}\n"
-                f"总电影数: {movies_count} 部\n"
-                f"总剧集数: {tv_shows_count} 部\n\n"
-                f"热门电影 TOP 5:\n"
-            )
-            
-            # 添加热门电影信息
-            for i, movie in enumerate(sorted(data['movies'], key=lambda x: float(x['rating'] or 0), reverse=True)[:5], 1):
-                message += f"{i}. {movie['title']} - ⭐️{movie['rating']}\n"
+            message += "<b>新增热门电影:</b>\n"
+            new_movies = [movie for movie in data['movies'] if not movie.get('notified', False)]
+            for movie in new_movies[:5]:  # 最多显示5部新电影
+                movie_link = movie.get('url', f"https://movie.douban.com/subject/{movie.get('id', '')}/")
+                message += f"• <a href='{movie_link}'>{movie['title']}</a> - ⭐{movie['rating']}\n"
+                movie['notified'] = True  # 标记为已通知
                 
-            message += "\n热门剧集 TOP 5:\n"
+            # 如果新电影超过5部，添加"等"字样
+            if len(new_movies) > 5:
+                message += f"等 {len(new_movies)} 部新热门电影\n"
             
-            # 添加热门剧集信息
+            # 新增电视剧
+            new_tv_shows = [tv for tv in data['tv_shows'] if not tv.get('notified', False)]
+            if new_tv_shows:
+                message += "\n<b>新增热门剧集:</b>\n"
+                for tv in new_tv_shows[:5]:  # 最多显示5部新剧集
+                    tv_link = tv.get('url', f"https://movie.douban.com/subject/{tv.get('id', '')}/")
+                    message += f"• <a href='{tv_link}'>{tv['title']}</a> - ⭐{tv['rating']}\n"
+                    tv['notified'] = True  # 标记为已通知
+                    
+                # 如果新剧集超过5部，添加"等"字样
+                if len(new_tv_shows) > 5:
+                    message += f"等 {len(new_tv_shows)} 部新热门剧集\n"
+            
+            message += "\n"
+            
+            # 保存数据，确保标记的notified状态被保存
+            save_hot_data(data)
+            
+        message += "<b>热门电影 TOP 5:</b>\n"
+        
+        # 添加热门电影信息，并添加链接
+        for i, movie in enumerate(sorted(data['movies'], key=lambda x: float(x['rating'] or 0), reverse=True)[:5], 1):
+            movie_link = movie.get('url', f"https://movie.douban.com/subject/{movie.get('id', '')}/")
+            message += f"{i}. <a href='{movie_link}'>{movie['title']}</a> - ⭐{movie['rating']}\n"
+            
+        # 只有在有电视剧时才显示电视剧部分
+        if tv_shows_count > 0:
+            message += "\n<b>热门剧集 TOP 5:</b>\n"
+            
+            # 添加热门剧集信息，并添加链接
             for i, tv in enumerate(sorted(data['tv_shows'], key=lambda x: float(x['rating'] or 0), reverse=True)[:5], 1):
-                message += f"{i}. {tv['title']} - ⭐️{tv['rating']}\n"
-            
-            # 发送 Telegram 通知
-            send_telegram_message(message, config)
+                tv_link = tv.get('url', f"https://movie.douban.com/subject/{tv.get('id', '')}/")
+                message += f"{i}. <a href='{tv_link}'>{tv['title']}</a> - ⭐{tv['rating']}\n"
+        
+        # 发送 Telegram 通知
+        send_telegram_message(message, config)
         
         print(f"\n数据获取完成！总计 {movies_count} 部热门电影和 {tv_shows_count} 部热门电视剧")
         

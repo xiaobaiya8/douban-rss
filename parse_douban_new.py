@@ -451,18 +451,38 @@ def main():
                 f"更新时间: {data['update_time']}\n"
                 f"总电影数: {movies_count} 部\n"
                 f"总剧集数: {tv_shows_count} 部\n\n"
-                f"最新电影 TOP 5:\n"
             )
+            
+            # 新增内容：添加新更新的电影信息
+            if data.get('has_updates', False):
+                message += "<b>新增电影:</b>\n"
+                new_movies = [movie for movie in data['movies'] if not movie.get('notified', False)]
+                for movie in new_movies[:5]:  # 最多显示5部新电影
+                    movie_link = movie.get('url', f"https://movie.douban.com/subject/{movie.get('id', '')}/")
+                    message += f"• <a href='{movie_link}'>{movie['title']}</a> - ⭐{movie['rating']}\n"
+                    movie['notified'] = True  # 标记为已通知
+                    
+                # 如果新电影超过5部，添加"等"字样
+                if len(new_movies) > 5:
+                    message += f"等 {len(new_movies)} 部新电影\n"
+                    
+                message += "\n"
+                
+            message += "<b>最新电影 TOP 5:</b>\n"
             
             # 添加最新电影信息
             for i, movie in enumerate(sorted(data['movies'], key=lambda x: float(x['rating'] or 0), reverse=True)[:5], 1):
-                message += f"{i}. {movie['title']} - ⭐️{movie['rating']}\n"
+                movie_link = movie.get('url', f"https://movie.douban.com/subject/{movie.get('id', '')}/")
+                message += f"{i}. <a href='{movie_link}'>{movie['title']}</a> - ⭐{movie['rating']}\n"
                 
-            message += "\n最新剧集 TOP 5:\n"
-            
-            # 添加最新剧集信息
-            for i, tv in enumerate(sorted(data['tv_shows'], key=lambda x: float(x['rating'] or 0), reverse=True)[:5], 1):
-                message += f"{i}. {tv['title']} - ⭐️{tv['rating']}\n"
+            # 只有在有电视剧时才显示电视剧部分
+            if tv_shows_count > 0:
+                message += "\n<b>最新剧集 TOP 5:</b>\n"
+                
+                # 添加最新剧集信息
+                for i, tv in enumerate(sorted(data['tv_shows'], key=lambda x: float(x['rating'] or 0), reverse=True)[:5], 1):
+                    tv_link = tv.get('url', f"https://movie.douban.com/subject/{tv.get('id', '')}/")
+                    message += f"{i}. <a href='{tv_link}'>{tv['title']}</a> - ⭐{tv['rating']}\n"
             
             # 发送 Telegram 通知
             send_telegram_message(message, config)
