@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, render_template, request, session, redirect, url_for, Response
+from flask import Flask, jsonify, render_template, request, session, redirect, url_for, Response, g
 import json
 import re
 import os
@@ -9,8 +9,50 @@ import sys
 import requests
 from datetime import datetime
 import schedule
+import logging
+from logging.config import dictConfig
+
+# 配置日志，过滤掉定期状态查询的请求
+class RequestFilter(logging.Filter):
+    def filter(self, record):
+        try:
+            # 使用flask的request上下文而不是直接引用全局request对象
+            from flask import request
+            if request and hasattr(request, 'path'):
+                # 不记录 /parser_status 接口的访问日志
+                if request.path == '/parser_status':
+                    return False
+        except Exception:
+            # 如果无法获取request上下文（比如在非请求上下文中），仍然记录日志
+            pass
+        return True
+
+# 设置日志配置
+dictConfig({
+    'version': 1,
+    'filters': {
+        'exclude_status_route': {
+            '()': RequestFilter,
+        }
+    },
+    'handlers': {
+        'wsgi': {
+            'class': 'logging.StreamHandler',
+            'stream': 'ext://flask.logging.wsgi_errors_stream',
+            'filters': ['exclude_status_route']
+        }
+    },
+    'root': {
+        'level': 'INFO',
+        'handlers': ['wsgi']
+    }
+})
 
 app = Flask(__name__)
+
+# 应用日志过滤器到Flask自带的日志处理器
+for handler in app.logger.handlers:
+    handler.addFilter(RequestFilter())
 
 # 全局定时器
 scheduler_thread = None
@@ -667,6 +709,10 @@ if __name__ == '__main__':
         print("RSS 模块已加载")
     except ImportError:
         print("RSS 模块未找到，跳过加载")
+    
+    # 禁用Werkzeug默认的日志输出
+    log = logging.getLogger('werkzeug')
+    log.setLevel(logging.ERROR)  # 只记录错误级别的日志
     
     # 启动定时器
     start_scheduler()
