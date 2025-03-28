@@ -11,7 +11,7 @@
 
 ## 可用的RSS接口
 
-### 适用于RSSHub/MicroPub等RSS软件
+### 适用于RSSHub/MoviePilot等RSS软件
 
 | 内容 | 接口地址 | 说明 |
 | ---- | ---- | ---- |

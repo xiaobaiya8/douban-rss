@@ -649,20 +649,34 @@ input[type="number"] {
 }
 
 .api-note {
-    margin-top: 20px;
-    padding: 12px 15px;
-    background-color: rgba(23, 162, 184, 0.1);
-    border-left: 4px solid var(--info-color);
-    border-radius: 0 4px 4px 0;
-    color: var(--dark-color);
+    margin-top: 15px;
+    padding: 15px;
+    background-color: rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    color: #666;
+    line-height: 1.5;
+}
+
+.api-note-item {
+    padding: 8px 0;
     display: flex;
     align-items: center;
-    gap: 10px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.api-note-item:last-child {
+    border-bottom: none;
+}
+
+.api-note-item i {
+    margin-right: 8px;
+    color: #3b88c3;
 }
 
 .api-note i {
-    color: var(--info-color);
-    font-size: 18px;
+    margin-right: 8px;
+    color: #3b88c3;
 }
 
 /* 响应式设计 */
@@ -874,8 +888,12 @@ body.dark-mode .api-table code {
 }
 
 body.dark-mode .api-note {
-    background-color: rgba(34, 184, 207, 0.15);
-    color: #f8f9fa;
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #aaa;
+}
+
+body.dark-mode .api-note-item {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 body.dark-mode .btn-primary {
@@ -1120,8 +1138,12 @@ body.dark-mode *::-webkit-scrollbar-thumb:hover {
     }
     
     body:not(.light-mode) .api-note {
-        background-color: rgba(34, 184, 207, 0.15);
-        color: #f8f9fa;
+        background-color: rgba(255, 255, 255, 0.05);
+        color: #aaa;
+    }
+    
+    body:not(.light-mode) .api-note-item {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     }
     
     body:not(.light-mode) .btn-primary {

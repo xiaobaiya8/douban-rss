@@ -227,7 +227,7 @@
                                 </tr>
                                 <!-- 添加RSS路由 -->
                                 <tr class="api-section-header">
-                                    <td colspan="2"><i class="bi bi-rss"></i> <strong>RSSHub/MicroPub订阅接口</strong></td>
+                                    <td colspan="2"><i class="bi bi-rss"></i> <strong>RSSHub/MoviePilot订阅接口</strong></td>
                                 </tr>
                                 <tr>
                                     <td><i class="bi bi-film"></i><i class="bi bi-rss"></i> 用户想看电影</td>
@@ -257,11 +257,15 @@
                         </table>
                     </div>
                     <div class="api-note">
-                        <i class="bi bi-info-circle"></i> <strong>Radarr/Sonarr接口</strong>：返回JSON格式数据，路径以 <code>/rss/</code> 开头，适用于Radarr/Sonarr等自动下载软件。
-                        <br>
-                        <i class="bi bi-rss"></i> <strong>RSSHub接口</strong>：返回XML格式数据，路径以 <code>/rsshub/</code> 开头，适用于RSS阅读器和MicroPub等软件。
-                        <br>
-                        <i class="bi bi-globe"></i> 当前服务器地址：<code id="server-address">正在获取...</code><button class="copy-btn" id="copy-address-btn"><i class="bi bi-clipboard"></i></button>
+                        <div class="api-note-item">
+                            <i class="bi bi-code-slash"></i> <strong>Radarr/Sonarr接口</strong>：返回JSON格式数据，路径以 <code>/rss/</code> 开头，适用于Radarr/Sonarr等自动下载软件。
+                        </div>
+                        <div class="api-note-item">
+                            <i class="bi bi-rss"></i> <strong>RSSHub接口</strong>：返回XML格式数据，路径以 <code>/rsshub/</code> 开头，适用于RSS阅读器和MoviePilot等软件。
+                        </div>
+                        <div class="api-note-item">
+                            <i class="bi bi-globe"></i> <strong>当前服务器地址</strong>：<code id="server-address">正在获取...</code><button class="copy-btn" id="copy-address-btn"><i class="bi bi-clipboard"></i></button>
+                        </div>
                     </div>
                 </div>
             </div>
