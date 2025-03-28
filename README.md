@@ -2,6 +2,8 @@
 
 一个用于监控豆瓣电影和剧集信息并提供 API 接口的工具，支持自动同步用户想看列表、最新电影/剧集、热门电影/剧集以及冷门佳片。
 
+[English Version](https://github.com/xiaobaiya8/douban-rss/blob/main/README_EN.md)
+
 ## 功能特点
 
 - **用户想看列表监控**：自动同步豆瓣用户想看的电影和剧集

@@ -2,6 +2,8 @@
 
 A tool for monitoring Douban movie and TV series information and providing API interfaces. It supports automatic synchronization of user wishlists, latest movies/TV shows, popular content, and hidden gems.
 
+[中文文档](https://github.com/xiaobaiya8/douban-rss/blob/main/README.md)
+
 ## Features
 
 - **User Wishlist Monitoring**: Automatically synchronize movies and TV shows from Douban user wishlists
