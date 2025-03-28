@@ -8,6 +8,14 @@ A tool for monitoring Douban movie and TV series information and providing API i
 
 Join our Telegram group for discussions: [Douban RSS Group](https://t.me/douban_rss)
 
+## Screenshots
+
+### Web Interface
+![Web Interface](https://s2.loli.net/2025/03/28/PgWmOY9tUoenvZC.png)
+
+### Telegram Notifications
+![Telegram Notifications](https://s2.loli.net/2025/03/28/IcVr5bDZmBitLRy.png)
+
 ## Features
 
 - **User Wishlist Monitoring**: Automatically synchronize movies and TV shows from Douban user wishlists

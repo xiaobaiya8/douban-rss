@@ -8,6 +8,14 @@
 
 欢迎加入我们的Telegram群组进行交流：[豆瓣RSS交流群](https://t.me/douban_rss)
 
+## 系统截图
+
+### Web界面
+![Web界面](https://s2.loli.net/2025/03/28/PgWmOY9tUoenvZC.png)
+
+### Telegram通知
+![Telegram通知](https://s2.loli.net/2025/03/28/IcVr5bDZmBitLRy.png)
+
 ## 功能特点
 
 - **用户想看列表监控**：自动同步豆瓣用户想看的电影和剧集
