@@ -756,8 +756,61 @@ document.addEventListener('DOMContentLoaded', function() {
                 textToCopy = `${protocol}//${hostname}${port ? ':' + port : ''}${path}`;
             }
             
-            navigator.clipboard.writeText(textToCopy)
-                .then(() => {
+            // 提供兼容性更好的复制功能实现
+            function copyTextToClipboard(text) {
+                // 首先尝试使用现代Clipboard API
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    return navigator.clipboard.writeText(text)
+                        .then(() => true)
+                        .catch(() => {
+                            // 如果Clipboard API失败，使用fallback方法
+                            return fallbackCopyTextToClipboard(text);
+                        });
+                } else {
+                    // 浏览器不支持Clipboard API，使用fallback方法
+                    return Promise.resolve(fallbackCopyTextToClipboard(text));
+                }
+            }
+            
+            // 兼容性方法：使用textarea元素复制
+            function fallbackCopyTextToClipboard(text) {
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                
+                // 将textarea设置为不可见
+                textArea.style.position = "fixed";
+                textArea.style.top = "-999999px";
+                textArea.style.left = "-999999px";
+                document.body.appendChild(textArea);
+                
+                // 保存当前选中内容
+                const selected = document.getSelection().rangeCount > 0 
+                    ? document.getSelection().getRangeAt(0) 
+                    : false;
+                
+                // 选中文本并复制
+                textArea.select();
+                let success = false;
+                try {
+                    success = document.execCommand('copy');
+                } catch (err) {
+                    console.error('Fallback: 复制到剪贴板失败', err);
+                }
+                
+                // 清理
+                document.body.removeChild(textArea);
+                
+                // 恢复原始选择
+                if (selected) {
+                    document.getSelection().removeAllRanges();
+                    document.getSelection().addRange(selected);
+                }
+                
+                return success;
+            }
+            
+            copyTextToClipboard(textToCopy)
+                .then((success) => {
                     // 复制成功，修改按钮图标为成功状态
                     const originalIcon = this.innerHTML;
                     this.innerHTML = '<i class="bi bi-check"></i>';

@@ -16,22 +16,80 @@
 
 ## 快速开始
 
-### 使用 Docker Compose（推荐）
+### 方法一：直接使用 Docker（最简单）
 
-1. 创建项目目录并下载源码
+```bash
+# 创建配置目录
+mkdir -p douban-rss/config
+
+# 启动容器
+docker run -d \
+  --name douban-rss \
+  -p 9150:9150 \
+  -v $(pwd)/douban-rss/config:/config \
+  -e TZ=Asia/Shanghai \
+  -e CONFIG_DIR=/config \
+  --restart unless-stopped \
+  xiaobaiya000/douban-rss:latest
+```
+
+### 方法二：使用 Docker Compose
+
+1. 创建项目目录
+
+```bash
+mkdir -p douban-rss && cd douban-rss
+```
+
+2. 创建 docker-compose.yml 文件
+
+```bash
+cat > docker-compose.yml << EOF
+version: '3'
+
+services:
+  douban-rss:
+    image: xiaobaiya000/douban-rss:latest
+    container_name: douban-rss
+    ports:
+      - "9150:9150"
+    volumes:
+      - ./config:/config
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Shanghai
+      - CONFIG_DIR=/config
+      - PYTHONUNBUFFERED=1
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+EOF
+```
+
+3. 启动服务
+
+```bash
+docker-compose up -d
+```
+
+### 方法三：从源码构建（开发者使用）
+
+1. 克隆项目并进入目录
 
 ```bash
 git clone https://github.com/xiaobaiya8/xiaobai-douban.git
 cd xiaobai-douban
 ```
 
-2. 启动服务
+2. 使用 Docker Compose 构建并启动
 
 ```bash
 docker-compose up -d
 ```
 
-3. 访问 Web 界面进行配置
+4. 访问 Web 界面进行配置
 
 ```bash
 http://your-ip:9150

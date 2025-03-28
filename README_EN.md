@@ -16,22 +16,80 @@ A tool for monitoring Douban movie and TV series information and providing API i
 
 ## Quick Start
 
-### Using Docker Compose (Recommended)
+### Method 1: Direct Docker Installation (Simplest)
 
-1. Create a project directory and download the source code
+```bash
+# Create configuration directory
+mkdir -p douban-rss/config
+
+# Start container
+docker run -d \
+  --name douban-rss \
+  -p 9150:9150 \
+  -v $(pwd)/douban-rss/config:/config \
+  -e TZ=Asia/Shanghai \
+  -e CONFIG_DIR=/config \
+  --restart unless-stopped \
+  xiaobaiya000/douban-rss:latest
+```
+
+### Method 2: Using Docker Compose
+
+1. Create project directory
+
+```bash
+mkdir -p douban-rss && cd douban-rss
+```
+
+2. Create docker-compose.yml file
+
+```bash
+cat > docker-compose.yml << EOF
+version: '3'
+
+services:
+  douban-rss:
+    image: xiaobaiya000/douban-rss:latest
+    container_name: douban-rss
+    ports:
+      - "9150:9150"
+    volumes:
+      - ./config:/config
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Shanghai
+      - CONFIG_DIR=/config
+      - PYTHONUNBUFFERED=1
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+EOF
+```
+
+3. Start service
+
+```bash
+docker-compose up -d
+```
+
+### Method 3: Build from Source (For Developers)
+
+1. Clone repository and enter directory
 
 ```bash
 git clone https://github.com/xiaobaiya8/xiaobai-douban.git
 cd xiaobai-douban
 ```
 
-2. Start the service
+2. Build and start with Docker Compose
 
 ```bash
 docker-compose up -d
 ```
 
-3. Access the Web interface for configuration
+4. Access the Web interface for configuration
 
 ```
 http://your-ip:9150
@@ -65,26 +123,26 @@ Once successfully configured, the system provides the following API interfaces:
 
 ### For Radarr/Sonarr and Similar Automatic Download Software
 
-| Content | API Endpoint | Description |
-| ---- | ---- | ---- |
-| User Movie Wishlist | `/rss/movies` | All movies in users' wishlists |
-| User TV Wishlist | `/rss/tv` | All TV shows in users' wishlists |
-| Latest Movies | `/rss/new_movies` | Douban latest movies |
-| Popular Movies | `/rss/hot_movies` | Douban popular movies |
-| Popular TV Shows | `/rss/hot_tv` | Douban popular TV shows |
-| Hidden Gem Movies | `/rss/hidden_gems_movies` | Douban hidden but highly rated movies |
+| Content | API Endpoint |
+| ---- | ---- |
+| User Movie Wishlist | `/rss/movies` |
+| User TV Wishlist | `/rss/tv` |
+| Latest Movies | `/rss/new_movies` |
+| Popular Movies | `/rss/hot_movies` |
+| Popular TV Shows | `/rss/hot_tv` |
+| Hidden Gem Movies | `/rss/hidden_gems_movies` |
 
 ### For RSSHub/MoviePilot and Similar RSS Software
 
-| Content | API Endpoint | Description |
-| ---- | ---- | ---- |
-| User Wishlist (All) | `/rsshub/wish` | All movies and TV shows in users' wishlists |
-| User Movie Wishlist | `/rsshub/movies` | All movies in users' wishlists |
-| User TV Wishlist | `/rsshub/tv` | All TV shows in users' wishlists |
-| Latest Movies | `/rsshub/new_movies` | Douban latest movies |
-| Popular Movies | `/rsshub/hot_movies` | Douban popular movies |
-| Popular TV Shows | `/rsshub/hot_tv` | Douban popular TV shows |
-| Hidden Gem Movies | `/rsshub/hidden_gems_movies` | Douban hidden but highly rated movies |
+| Content | API Endpoint |
+| ---- | ---- |
+| User Wishlist (All) | `/rsshub/wish` |
+| User Movie Wishlist | `/rsshub/movies` |
+| User TV Wishlist | `/rsshub/tv` |
+| Latest Movies | `/rsshub/new_movies` |
+| Popular Movies | `/rsshub/hot_movies` |
+| Popular TV Shows | `/rsshub/hot_tv` |
+| Hidden Gem Movies | `/rsshub/hidden_gems_movies` |
 
 ### Usage Notes
 

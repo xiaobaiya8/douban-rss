@@ -1,9 +1,9 @@
 version: '3'
 
 services:
-  douban-api:
-    build: .
-    container_name: douban-api
+  douban-rss:
+    image: xiaobaiya000/douban-rss:latest
+    container_name: douban-rss
     ports:
       - "9150:9150"
     volumes:
