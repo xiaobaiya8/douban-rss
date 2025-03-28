@@ -259,6 +259,8 @@ function updateParserStatus() {
                 }
                 
                 runButton.disabled = false;
+                // 确保按钮文本恢复到初始状态
+                runButton.innerHTML = '<i class="bi bi-arrow-clockwise"></i> 立即更新数据';
                 
                 let statusHtml = '状态: 空闲<br>';
                 statusHtml += `上次更新: ${data.last_run || '从未运行'}<br>`;

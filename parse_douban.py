@@ -289,6 +289,9 @@ def generate_movies_json(html_content, user_id, all_data, cookie):
             new_items += 1
             data = parse_movie_item(item, {}, cookie)
             
+            # 设置notified为False，表示这是一个新条目需要通知
+            data['notified'] = False
+            
             # 根据类型添加到对应列表
             if data["type"] == "movie":
                 movies.append(data)
@@ -496,8 +499,8 @@ def main():
         
         # 记录是否有任何用户数据更新
         any_updates = False
-        # 记录新增的条目
-        new_items = []
+        # 获取所有数据
+        all_data = load_all_data()
         
         # 处理每个用户的数据
         users = config.get('users', [])
@@ -509,28 +512,11 @@ def main():
             try:
                 print(f"\n[{i}/{total_users}] 处理用户: {note or user_id}")
                 
-                # 获取更新前的数据
-                all_data = load_all_data()
-                old_data = all_data.get(user_id, {'movies': [], 'tv_shows': []})
-                old_titles = {item['title'] for item in old_data.get('movies', []) + old_data.get('tv_shows', [])}
-                
                 # 获取更新
                 has_updates = fetch_user_data(user_id, cookie)
                 
                 if has_updates:
                     any_updates = True
-                    # 获取更新后的数据
-                    all_data = load_all_data()
-                    new_data = all_data.get(user_id, {'movies': [], 'tv_shows': []})
-                    current_titles = {item['title'] for item in new_data.get('movies', []) + new_data.get('tv_shows', [])}
-                    
-                    # 找出新增的条目
-                    added_titles = current_titles - old_titles
-                    if added_titles:
-                        new_items.append({
-                            'user': note or user_id,
-                            'titles': sorted(added_titles)
-                        })
                 
                 # 如果不是最后一个用户，添加随机延迟
                 if i < total_users:
@@ -546,59 +532,62 @@ def main():
         # 无论是否有更新，都构建消息
         message = "🎬 <b>豆瓣想看更新提醒</b>\n\n"
         
-        if not any_updates:
+        # 重新加载所有数据，确保获取最新的数据
+        all_data = load_all_data()
+        
+        # 检查是否有未通知的条目
+        has_unnotified_items = False
+        for user_id, user_data in all_data.items():
+            movies = user_data.get('movies', [])
+            tv_shows = user_data.get('tv_shows', [])
+            unnotified_items = [item for item in movies + tv_shows if not item.get('notified', False)]
+            if unnotified_items:
+                has_unnotified_items = True
+                break
+        
+        if not has_unnotified_items:
             # 没有新内容时的消息
             message += "⚠️ 本次更新没有发现新的想看内容。\n\n"
         
-        message += f"更新时间: {time.strftime('%Y-%m-%d %H:%M:%S')}\n"
+        message += f"更新时间: {time.strftime('%Y-%m-%d %H:%M:%S')}\n\n"
         
-        if any_updates and new_items:
-            # 有新内容时的消息内容
-            for item in new_items:
-                if item['titles']:
-                    message += f"用户 {item['user']} 新增想看:\n"
-                    # 获取最新的数据
-                    all_data = load_all_data()
-                    # 从 users 中找到对应的 user_id
-                    user_id = None
-                    for user in config.get('users', []):
-                        if user.get('note', '') == item['user'] or user['id'] == item['user']:
-                            user_id = user['id']
-                            break
+        if has_unnotified_items:
+            # 整理每个用户的未通知条目
+            for user in users:
+                user_id = user['id']
+                note = user.get('note', '')
+                user_data = all_data.get(user_id, {})
+                movies = user_data.get('movies', [])
+                tv_shows = user_data.get('tv_shows', [])
+                
+                # 获取未通知的条目
+                unnotified_items = [item for item in movies + tv_shows if not item.get('notified', False)]
+                
+                if unnotified_items:
+                    message += f"用户 {note or user_id} 新增想看:\n"
                     
-                    if user_id:
-                        user_data = all_data.get(user_id, {})
-                        all_items = user_data.get('movies', []) + user_data.get('tv_shows', [])
-                        # 创建标题到条目的映射
-                        title_to_item = {entry['title']: entry for entry in all_items}
+                    for item in unnotified_items:
+                        # 标记为已通知
+                        item['notified'] = True
                         
-                        for title in item['titles']:
-                            entry = title_to_item.get(title)
-                            if entry:
-                                # 获取年份信息
-                                info = entry.get('info', [])
-                                # 从发行日期中提取年份
-                                year = ''
-                                for info_item in info:
-                                    # 匹配形如 "2025-01-15(法国)" 的日期格式
-                                    match = re.match(r'(\d{4})-\d{2}-\d{2}', info_item)
-                                    if match:
-                                        year = match.group(1)
-                                        break
-                                
-                                # 使用主标题和副标题，添加链接
-                                message += f"• <a href=\"{entry['url']}\">{entry['title']}"
-                                if entry.get('subtitle'):
-                                    message += f" ({entry['subtitle']})"
-                                if year:
-                                    message += f" [{year}]"
-                                message += "</a>\n"
-                            else:
-                                message += f"• {title}\n"
-                        message += "\n"
+                        # 获取年份信息
+                        year = item.get('year', '')
+                        
+                        # 使用主标题和副标题，添加链接
+                        url = item.get('url', f"https://movie.douban.com/subject/{item.get('id', '')}/")
+                        message += f"• <a href=\"{url}\">{item['title']}"
+                        if item.get('subtitle'):
+                            message += f" ({item['subtitle']})"
+                        if year:
+                            message += f" [{year}]"
+                        message += "</a>\n"
+                    
+                    message += "\n"
+            
+            # 保存更新后的数据
+            save_all_data(all_data)
         else:
             # 添加统计信息
-            all_data = load_all_data()
             total_movies = sum(len(user_data.get('movies', [])) for user_data in all_data.values())
             total_tv_shows = sum(len(user_data.get('tv_shows', [])) for user_data in all_data.values())
             
@@ -607,7 +596,7 @@ def main():
             message += f"• {total_tv_shows} 部剧集\n"
         
         # 发送 Telegram 通知
-        send_telegram_message(message, config, any_updates)
+        send_telegram_message(message, config, has_unnotified_items)
         
         print("\n数据获取完成！")
         
