@@ -7,6 +7,7 @@
 - **用户想看列表监控**：自动同步豆瓣用户想看的电影和剧集
 - **热门榜单监控**：提供豆瓣最新、最热和冷门佳片榜单
 - **Radarr/Sonarr 兼容**：API 接口格式兼容 Radarr 和 Sonarr 导入
+- **RSS订阅支持**：提供标准RSS订阅接口，适配各类RSS阅读器及MoviePilot
 - **自定义更新频率**：可配置的自动更新时间间隔
 - **多用户支持**：可同时监控多个豆瓣用户的想看列表
 - **Telegram 通知**：支持通过 Telegram 发送更新通知
@@ -62,15 +63,35 @@ http://your-ip:9150
 
 成功配置后，系统提供以下 API 接口：
 
-- `/movies` - 用户想看电影列表
-- `/tv` - 用户想看剧集列表
-- `/new_movies` - 最新电影
-- `/hot_movies` - 热门电影
-- `/hot_tv` - 热门剧集
-- `/hidden_gems_movies` - 冷门佳片电影
-- `/hidden_gems_tv` - 冷门佳片剧集
+### 适用于Radarr/Sonarr等自动下载软件
 
-所有 API 返回 JSON 格式数据，可直接用于 Radarr/Sonarr 导入。
+| 内容 | 接口地址 |
+| ---- | ---- |
+| 用户想看电影 | `/rss/movies` |
+| 用户想看剧集 | `/rss/tv` |
+| 最新电影 | `/rss/new_movies` |
+| 热门电影 | `/rss/hot_movies` |
+| 热门剧集 | `/rss/hot_tv` |
+| 冷门佳片电影 | `/rss/hidden_gems_movies` |
+
+### 适用于RSSHub/MoviePilot等RSS软件
+
+| 内容 | 接口地址 |
+| ---- | ---- |
+| 用户想看(全部) | `/rsshub/wish` |
+| 用户想看电影 | `/rsshub/movies` |
+| 用户想看剧集 | `/rsshub/tv` |
+| 最新电影 | `/rsshub/new_movies` |
+| 热门电影 | `/rsshub/hot_movies` |
+| 热门剧集 | `/rsshub/hot_tv` |
+| 冷门佳片电影 | `/rsshub/hidden_gems_movies` |
+
+### 使用说明
+
+- `/rsshub/` 路径返回XML格式，适合RSS阅读器订阅
+- `/rss/` 路径返回JSON格式，适合Radarr/Sonarr导入
+- RSS数据使用标准的XML格式，包含符合规范的channel和item元素
+- 每个条目都提供了链接到豆瓣原始页面的URL和封面图片
 
 ## 环境变量
 

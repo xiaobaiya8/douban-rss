@@ -7,6 +7,7 @@ A tool for monitoring Douban movie and TV series information and providing API i
 - **User Wishlist Monitoring**: Automatically synchronize movies and TV shows from Douban user wishlists
 - **Popular List Monitoring**: Provides Douban's latest, most popular, and hidden gem lists
 - **Radarr/Sonarr Compatible**: API interface format compatible with Radarr and Sonarr import
+- **RSS Feed Support**: Provides standard RSS subscription interfaces for RSS readers and MoviePilot
 - **Custom Update Frequency**: Configurable automatic update intervals
 - **Multi-user Support**: Monitor wishlists from multiple Douban users simultaneously
 - **Telegram Notifications**: Support for sending update notifications via Telegram
@@ -20,7 +21,7 @@ A tool for monitoring Douban movie and TV series information and providing API i
 1. Create a project directory and download the source code
 
 ```bash
-git clone https://github.com/yourusername/xiaobai-douban.git
+git clone https://github.com/xiaobaiya8/xiaobai-douban.git
 cd xiaobai-douban
 ```
 
@@ -62,15 +63,35 @@ When accessing the Web interface for the first time, you need to set an access p
 
 Once successfully configured, the system provides the following API interfaces:
 
-- `/movies` - User's movie wishlist
-- `/tv` - User's TV show wishlist
-- `/new_movies` - Latest movies
-- `/hot_movies` - Popular movies
-- `/hot_tv` - Popular TV shows
-- `/hidden_gems_movies` - Hidden gem movies
-- `/hidden_gems_tv` - Hidden gem TV shows
+### For Radarr/Sonarr and Similar Automatic Download Software
 
-All APIs return data in JSON format, which can be directly imported into Radarr/Sonarr.
+| Content | API Endpoint | Description |
+| ---- | ---- | ---- |
+| User Movie Wishlist | `/rss/movies` | All movies in users' wishlists |
+| User TV Wishlist | `/rss/tv` | All TV shows in users' wishlists |
+| Latest Movies | `/rss/new_movies` | Douban latest movies |
+| Popular Movies | `/rss/hot_movies` | Douban popular movies |
+| Popular TV Shows | `/rss/hot_tv` | Douban popular TV shows |
+| Hidden Gem Movies | `/rss/hidden_gems_movies` | Douban hidden but highly rated movies |
+
+### For RSSHub/MoviePilot and Similar RSS Software
+
+| Content | API Endpoint | Description |
+| ---- | ---- | ---- |
+| User Wishlist (All) | `/rsshub/wish` | All movies and TV shows in users' wishlists |
+| User Movie Wishlist | `/rsshub/movies` | All movies in users' wishlists |
+| User TV Wishlist | `/rsshub/tv` | All TV shows in users' wishlists |
+| Latest Movies | `/rsshub/new_movies` | Douban latest movies |
+| Popular Movies | `/rsshub/hot_movies` | Douban popular movies |
+| Popular TV Shows | `/rsshub/hot_tv` | Douban popular TV shows |
+| Hidden Gem Movies | `/rsshub/hidden_gems_movies` | Douban hidden but highly rated movies |
+
+### Usage Notes
+
+- The `/rsshub/` path returns XML format, suitable for RSS readers
+- The `/rss/` path returns JSON format, suitable for Radarr/Sonarr import
+- RSS data uses standard XML format, including channel and item elements that comply with specifications
+- Each entry provides a link to the original Douban page URL and cover image
 
 ## Environment Variables
 
