@@ -25,6 +25,7 @@ NEW_MOVIES_FILE = os.path.join(CONFIG_DIR, 'new_movies.json')
 HOT_MOVIES_FILE = os.path.join(CONFIG_DIR, 'hot_movies.json')
 HIDDEN_GEMS_FILE = os.path.join(CONFIG_DIR, 'hidden_gems.json')
 STATUS_FILE = os.path.join(CONFIG_DIR, 'status.json')
+DOULIST_FILE = os.path.join(CONFIG_DIR, 'doulists.json')
 
 def load_json_file(file_path):
     """加载指定的 JSON 文件"""
@@ -284,6 +285,51 @@ def register_rss_routes(app):
         link = request.url_root + "rsshub/status_tv"
         
         rss_xml = generate_rss(tv_shows, title, description, link)
+        return Response(rss_xml, mimetype='application/xml')
+
+    @app.route('/rsshub/doulists')
+    def rss_douban_doulists():
+        """获取所有片单中的电影/剧集的综合 RSS"""
+        data = load_json_file(DOULIST_FILE)
+        all_items = []
+        
+        # 收集所有片单中的条目
+        for doulist_id, doulist_data in data.get('lists', {}).items():
+            items = doulist_data.get('items', [])
+            # 添加片单信息到每个条目
+            for item in items:
+                item['doulist_info'] = doulist_data.get('list_info', {})
+                all_items.append(item)
+        
+        # 按添加时间排序（最新的在前）
+        all_items.sort(key=lambda x: x.get('add_time', ''), reverse=True)
+        
+        # 生成 RSS
+        title = "豆瓣片单合集"
+        description = "所有关注的豆瓣片单中的电影和剧集"
+        link = request.url_root + "rsshub/doulists"
+        
+        rss_xml = generate_rss(all_items, title, description, link)
+        return Response(rss_xml, mimetype='application/xml')
+
+    @app.route('/rsshub/doulist/<doulist_id>')
+    def rss_douban_doulist(doulist_id):
+        """获取指定片单的 RSS"""
+        data = load_json_file(DOULIST_FILE)
+        doulist_data = data.get('lists', {}).get(doulist_id, {})
+        
+        if not doulist_data:
+            return Response(f"片单 {doulist_id} 未找到", status=404)
+            
+        items = doulist_data.get('items', [])
+        list_info = doulist_data.get('list_info', {})
+        
+        # 生成 RSS
+        title = list_info.get('title', f"豆瓣片单 {doulist_id}")
+        description = list_info.get('description', "豆瓣片单中的电影和剧集")
+        link = list_info.get('url', request.url_root + f"rsshub/doulist/{doulist_id}")
+        
+        rss_xml = generate_rss(items, title, description, link)
         return Response(rss_xml, mimetype='application/xml')
 
     print("已注册 RSS 相关路由") 

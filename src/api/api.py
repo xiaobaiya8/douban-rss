@@ -80,6 +80,7 @@ STATUS_FILE = os.path.join(CONFIG_DIR, 'status.json')  # 添加广播数据文�
 NEW_MOVIES_FILE = os.path.join(CONFIG_DIR, 'new_movies.json')
 HOT_MOVIES_FILE = os.path.join(CONFIG_DIR, 'hot_movies.json')
 HIDDEN_GEMS_FILE = os.path.join(CONFIG_DIR, 'hidden_gems.json')
+DOULIST_FILE = os.path.join(CONFIG_DIR, 'doulists.json')
 
 # 添加 session 密钥
 app.secret_key = os.urandom(24)
@@ -99,7 +100,8 @@ def run_parser(is_manual=False):
             monitors.get('latest', False),
             monitors.get('popular', False),
             monitors.get('hidden_gems', False),
-            monitors.get('status', False)  # 添加广播监控
+            monitors.get('status', False),  # 添加广播监控
+            monitors.get('doulist', False)  # 添加片单监控
         ])
         current_task = 0
         
@@ -139,28 +141,34 @@ def run_parser(is_manual=False):
             
             current_task += 1
         
-        # 按顺序运行各个监控程序
+        # 确保任务按顺序执行
         if monitors.get('user_wish'):
-            print("\n开始运行用户想看监控...")
+            print("开始执行愿望单爬取任务...")
             run_monitor("douban", "用户想看监控")
-        
+            
         if monitors.get('status'):
-            print("\n开始运行用户广播监控...")
+            print("开始执行广播爬取任务...")
             run_monitor("douban_status", "用户广播监控")
-        
+            
         if monitors.get('latest'):
-            print("\n开始运行最新电影监控...")
+            print("开始执行新片榜爬取任务...")
             run_monitor("douban_new", "最新电影监控")
-        
+            
         if monitors.get('popular'):
-            print("\n开始运行热门电影监控...")
+            print("开始执行热门榜爬取任务...")
             run_monitor("douban_hot", "热门电影监控")
-        
+            
         if monitors.get('hidden_gems'):
-            print("\n开始运行冷门佳片监控...")
+            print("开始执行冷门佳片爬取任务...")
             run_monitor("douban_hidden_gems", "冷门佳片监控")
-        
+            
+        if monitors.get('doulist'):
+            print("开始执行片单爬取任务...")
+            run_monitor("douban_doulist", "片单监控")
+            
         print("\n所有监控程序运行完成")
+        
+        return {"status": "success", "tasks_count": total_tasks}
         
     except Exception as e:
         print(f"运行监控程序时出错: {e}")
@@ -278,7 +286,8 @@ def load_config():
                         'status': False,        # 监控用户广播
                         'latest': False,        # 监控最新
                         'popular': False,       # 监控最热
-                        'hidden_gems': False    # 监控冷门佳片
+                        'hidden_gems': False,   # 监控冷门佳片
+                        'doulist': False        # 监控片单
                     }
                 elif 'status' not in config['monitors']:
                     config['monitors']['status'] = False  # 添加广播监控选项
@@ -300,7 +309,8 @@ def load_config():
             "status": False,       # 监控用户广播
             "latest": False,       # 监控最新
             "popular": False,      # 监控最热
-            "hidden_gems": False   # 监控冷门佳片
+            "hidden_gems": False,   # 监控冷门佳片
+            "doulist": False        # 监控片单
         }
     }
 
@@ -447,13 +457,16 @@ def save_config_handler():
                     statuses.append({"id": uid, "note": note.strip(), "pages": pages})
         
         # 获取监控配置
-        monitors = {
+        monitors = current_config.get('monitors', {})
+        # 更新监控设置，保留其他可能存在的设置
+        monitors.update({
             "user_wish": request.form.get('monitor_user_wish') == 'true',
             "status": request.form.get('monitor_status') == 'true',  # 广播监控
             "latest": request.form.get('monitor_latest') == 'true',
             "popular": request.form.get('monitor_popular') == 'true',
-            "hidden_gems": request.form.get('monitor_hidden_gems') == 'true'
-        }
+            "hidden_gems": request.form.get('monitor_hidden_gems') == 'true',
+            "doulist": request.form.get('monitor_doulist') == 'true'  # 片单监控
+        })
         
         # 获取 Telegram 配置
         telegram_config = {
@@ -473,6 +486,16 @@ def save_config_handler():
             "telegram": telegram_config,
             "monitors": monitors
         }
+        
+        # 处理片单数据
+        doulists_data = request.form.get('doulists_data', '[]')
+        try:
+            doulists = json.loads(doulists_data)
+            if isinstance(doulists, list):
+                config['doulists'] = doulists
+        except json.JSONDecodeError:
+            # 保留原有片单配置
+            config['doulists'] = current_config.get('doulists', [])
         
         save_config(config)
         
@@ -621,6 +644,66 @@ def get_hidden_gems_movies():
     data = load_json_file(HIDDEN_GEMS_FILE)
     movies = data.get('movies', [])
     return jsonify(convert_to_radarr_format(movies))
+
+@app.route('/rss/doulists')
+def get_doulists():
+    """获取所有片单中的电影"""
+    data = load_json_file(DOULIST_FILE)
+    all_items = []
+    
+    # 收集所有片单中的条目
+    for doulist_id, doulist_data in data.get('lists', {}).items():
+        items = doulist_data.get('items', [])
+        # 筛选电影类型条目
+        movie_items = [item for item in items if item.get('type') == 'movie']
+        all_items.extend(movie_items)
+    
+    return jsonify(convert_to_radarr_format(all_items))
+
+@app.route('/rss/doulist/<doulist_id>')
+def get_doulist(doulist_id):
+    """获取指定片单的电影"""
+    data = load_json_file(DOULIST_FILE)
+    doulist_data = data.get('lists', {}).get(doulist_id, {})
+    
+    if not doulist_data:
+        return jsonify({"error": f"片单 {doulist_id} 未找到"}), 404
+        
+    items = doulist_data.get('items', [])
+    # 筛选电影类型条目
+    movie_items = [item for item in items if item.get('type') == 'movie']
+    
+    return jsonify(convert_to_radarr_format(movie_items))
+
+@app.route('/rss/doulists_tv')
+def get_doulists_tv():
+    """获取所有片单中的电视剧"""
+    data = load_json_file(DOULIST_FILE)
+    all_items = []
+    
+    # 收集所有片单中的条目
+    for doulist_id, doulist_data in data.get('lists', {}).items():
+        items = doulist_data.get('items', [])
+        # 筛选电视剧类型条目
+        tv_items = [item for item in items if item.get('type') == 'tv']
+        all_items.extend(tv_items)
+    
+    return jsonify(convert_to_radarr_format(all_items, is_tv=True))
+
+@app.route('/rss/doulist_tv/<doulist_id>')
+def get_doulist_tv(doulist_id):
+    """获取指定片单的电视剧"""
+    data = load_json_file(DOULIST_FILE)
+    doulist_data = data.get('lists', {}).get(doulist_id, {})
+    
+    if not doulist_data:
+        return jsonify({"error": f"片单 {doulist_id} 未找到"}), 404
+        
+    items = doulist_data.get('items', [])
+    # 筛选电视剧类型条目
+    tv_items = [item for item in items if item.get('type') == 'tv']
+    
+    return jsonify(convert_to_radarr_format(tv_items, is_tv=True))
 
 @app.route('/health')
 def health_check():

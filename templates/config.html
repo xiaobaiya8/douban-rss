@@ -20,6 +20,9 @@
         <!-- 隐藏的广播用户数据 -->
         <script id="config-statuses-data" type="application/json">{{ config.statuses|tojson|safe if config.statuses else "[]" }}</script>
         
+        <!-- 隐藏的片单数据 -->
+        <script id="config-doulist-data" type="application/json">{{ config.doulists|tojson|safe if config.doulists else "[]" }}</script>
+        
         <div class="header">
             <h1><i class="bi bi-film"></i> 豆瓣电影/剧集 API 配置</h1>
             <button type="button" class="btn-logout" onclick="logout()"><i class="bi bi-box-arrow-right"></i> 退出登录</button>
@@ -46,6 +49,7 @@
                 <button class="tab-button active" onclick="switchTab('basic')"><i class="bi bi-gear"></i> 基本配置</button>
                 <button class="tab-button" onclick="switchTab('users')"><i class="bi bi-people"></i> 用户订阅</button>
                 <button class="tab-button" onclick="switchTab('statuses')"><i class="bi bi-broadcast"></i> 广播订阅</button>
+                <button class="tab-button" onclick="switchTab('doulists')"><i class="bi bi-list-ul"></i> 片单订阅</button>
                 <button class="tab-button" onclick="switchTab('password')"><i class="bi bi-key"></i> 修改密码</button>
                 <button class="tab-button" onclick="switchTab('api')"><i class="bi bi-code-slash"></i> API接口</button>
             </div>
@@ -145,6 +149,12 @@
                                {{ 'checked' if config.get('monitors', {}).get('hidden_gems') else '' }}>
                         <span><i class="bi bi-gem"></i> 监控豆瓣冷门佳片</span>
                     </label>
+                    
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="monitor_doulist" name="monitor_doulist"
+                               {{ 'checked' if config.get('monitors', {}).get('doulist') else '' }}>
+                        <span><i class="bi bi-list-ul"></i> 监控豆瓣片单</span>
+                    </label>
                 </div>
             </div>
         </div>
@@ -209,6 +219,28 @@
             </div>
         </div>
 
+        <!-- 片单订阅配置 -->
+        <div id="doulists-tab" class="tab-content">
+            <div class="form-group">
+                <label>片单订阅列表</label>
+                <div class="user-help">
+                    <i class="bi bi-info-circle"></i> 
+                    <span>订阅豆瓣片单中的电影或剧集。例如订阅<a href="https://www.douban.com/doulist/1907705/?sort=time&sub_type=" target="_blank">看过五星电影</a>。片单ID可在豆瓣片单URL中获取，例如：https://www.douban.com/doulist/<strong>1907705</strong>/</span>
+                    <button type="button" class="btn-help" onclick="showDoulistIdGuide()"><i class="bi bi-question-circle"></i> 查看教程</button>
+                </div>
+                <div class="user-add">
+                    <input type="text" id="newDoulistId" placeholder="输入片单ID">
+                    <input type="text" id="newDoulistNote" placeholder="输入备注（可选）">
+                    <div class="input-with-label">
+                        <input type="number" id="newDoulistPages" placeholder="抓取页数" value="5" min="1" max="20">
+                        <span class="input-label">页 <i class="bi bi-question-circle help-icon" title="设置抓取片单的页数（1-20页），页数越多获取的内容越多"></i></span>
+                    </div>
+                    <button type="button" class="btn-primary" onclick="addDoulist()"><i class="bi bi-plus-lg"></i> 添加</button>
+                </div>
+                <div id="doulistList" class="user-list"></div>
+            </div>
+        </div>
+
         <!-- 修改密码 -->
         <div id="password-tab" class="tab-content">
             <div class="form-group">
@@ -260,20 +292,20 @@
                                     <td colspan="2"><i class="bi bi-stars"></i> Radarr/Sonarr接口</td>
                                 </tr>
                                 <tr>
-                                    <td>想看电影</td>
+                                    <td>用户订阅电影</td>
                                     <td><div class="copy-container"><code><a href="/rss/movies" target="_blank">/rss/movies</a></code><button class="copy-btn" data-path="/rss/movies"><i class="bi bi-clipboard"></i></button></div></td>
                                 </tr>
                                 <tr>
-                                    <td>想看剧集</td>
+                                    <td>用户订阅剧集</td>
                                     <td><div class="copy-container"><code><a href="/rss/tv" target="_blank">/rss/tv</a></code><button class="copy-btn" data-path="/rss/tv"><i class="bi bi-clipboard"></i></button></div></td>
                                 </tr>
                                 <!-- 添加广播API接口 -->
                                 <tr>
-                                    <td>广播电影</td>
+                                    <td>广播订阅电影</td>
                                     <td><div class="copy-container"><code><a href="/rss/status_movies" target="_blank">/rss/status_movies</a></code><button class="copy-btn" data-path="/rss/status_movies"><i class="bi bi-clipboard"></i></button></div></td>
                                 </tr>
                                 <tr>
-                                    <td>广播剧集</td>
+                                    <td>广播订阅剧集</td>
                                     <td><div class="copy-container"><code><a href="/rss/status_tv" target="_blank">/rss/status_tv</a></code><button class="copy-btn" data-path="/rss/status_tv"><i class="bi bi-clipboard"></i></button></div></td>
                                 </tr>
                                 <tr>
@@ -292,25 +324,41 @@
                                     <td>冷门佳片电影</td>
                                     <td><div class="copy-container"><code><a href="/rss/hidden_gems_movies" target="_blank">/rss/hidden_gems_movies</a></code><button class="copy-btn" data-path="/rss/hidden_gems_movies"><i class="bi bi-clipboard"></i></button></div></td>
                                 </tr>
+                                <tr>
+                                    <td>片单订阅电影（全部）</td>
+                                    <td><div class="copy-container"><code><a href="/rss/doulists" target="_blank">/rss/doulists</a></code><button class="copy-btn" data-path="/rss/doulists"><i class="bi bi-clipboard"></i></button></div></td>
+                                </tr>
+                                <tr>
+                                    <td>片单订阅剧集（全部）</td>
+                                    <td><div class="copy-container"><code><a href="/rss/doulists_tv" target="_blank">/rss/doulists_tv</a></code><button class="copy-btn" data-path="/rss/doulists_tv"><i class="bi bi-clipboard"></i></button></div></td>
+                                </tr>
+                                <tr>
+                                    <td>单个片单电影</td>
+                                    <td><div class="copy-container"><code>/rss/doulist/<span class="param">片单ID</span></code><button class="copy-btn" data-path="/rss/doulist/示例ID"><i class="bi bi-clipboard"></i></button></div></td>
+                                </tr>
+                                <tr>
+                                    <td>单个片单电视剧</td>
+                                    <td><div class="copy-container"><code>/rss/doulist_tv/<span class="param">片单ID</span></code><button class="copy-btn" data-path="/rss/doulist_tv/示例ID"><i class="bi bi-clipboard"></i></button></div></td>
+                                </tr>
                                 <!-- 添加RSS路由 -->
                                 <tr class="api-section-header">
                                     <td colspan="2"><i class="bi bi-rss"></i> <strong>RSSHub/MoviePilot订阅接口</strong></td>
                                 </tr>
                                 <tr>
-                                    <td><i class="bi bi-film"></i><i class="bi bi-rss"></i> 用户想看电影</td>
+                                    <td><i class="bi bi-film"></i><i class="bi bi-rss"></i> 用户订阅电影</td>
                                     <td><div class="copy-container"><code><a href="/rsshub/movies" target="_blank">/rsshub/movies</a></code><button class="copy-btn" data-path="/rsshub/movies"><i class="bi bi-clipboard"></i></button></div></td>
                                 </tr>
                                 <tr>
-                                    <td><i class="bi bi-tv"></i><i class="bi bi-rss"></i> 用户想看剧集</td>
+                                    <td><i class="bi bi-tv"></i><i class="bi bi-rss"></i> 用户订阅剧集</td>
                                     <td><div class="copy-container"><code><a href="/rsshub/tv" target="_blank">/rsshub/tv</a></code><button class="copy-btn" data-path="/rsshub/tv"><i class="bi bi-clipboard"></i></button></div></td>
                                 </tr>
                                 <!-- 添加广播RSS接口 -->
                                 <tr>
-                                    <td><i class="bi bi-film"></i><i class="bi bi-broadcast"></i><i class="bi bi-rss"></i> 广播电影</td>
+                                    <td><i class="bi bi-film"></i><i class="bi bi-broadcast"></i><i class="bi bi-rss"></i> 广播订阅电影</td>
                                     <td><div class="copy-container"><code><a href="/rsshub/status_movies" target="_blank">/rsshub/status_movies</a></code><button class="copy-btn" data-path="/rsshub/status_movies"><i class="bi bi-clipboard"></i></button></div></td>
                                 </tr>
                                 <tr>
-                                    <td><i class="bi bi-tv"></i><i class="bi bi-broadcast"></i><i class="bi bi-rss"></i> 广播剧集</td>
+                                    <td><i class="bi bi-tv"></i><i class="bi bi-broadcast"></i><i class="bi bi-rss"></i> 广播订阅剧集</td>
                                     <td><div class="copy-container"><code><a href="/rsshub/status_tv" target="_blank">/rsshub/status_tv</a></code><button class="copy-btn" data-path="/rsshub/status_tv"><i class="bi bi-clipboard"></i></button></div></td>
                                 </tr>
                                 <tr>
@@ -328,6 +376,14 @@
                                 <tr>
                                     <td><i class="bi bi-film"></i><i class="bi bi-rss"></i> 冷门佳片电影</td>
                                     <td><div class="copy-container"><code><a href="/rsshub/hidden_gems_movies" target="_blank">/rsshub/hidden_gems_movies</a></code><button class="copy-btn" data-path="/rsshub/hidden_gems_movies"><i class="bi bi-clipboard"></i></button></div></td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-list-ul"></i><i class="bi bi-rss"></i> 片单订阅（全部）</td>
+                                    <td><div class="copy-container"><code><a href="/rsshub/doulists" target="_blank">/rsshub/doulists</a></code><button class="copy-btn" data-path="/rsshub/doulists"><i class="bi bi-clipboard"></i></button></div></td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-list-ul"></i><i class="bi bi-rss"></i> 单个片单订阅</td>
+                                    <td><div class="copy-container"><code>/rsshub/doulist/<span class="param">片单ID</span></code><button class="copy-btn" data-path="/rsshub/doulist/示例ID"><i class="bi bi-clipboard"></i></button></div></td>
                                 </tr>
                             </tbody>
                         </table>

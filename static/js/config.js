@@ -26,6 +26,12 @@ let users = [];
 // 广播用户列表数据结构
 let statuses = [];
 
+// 隐藏的广播用户数据
+const statusesHidden = JSON.parse(document.getElementById('config-statuses-data').textContent || '[]');
+
+// 隐藏的片单数据
+let doulists = JSON.parse(document.getElementById('config-doulist-data')?.textContent || '[]');
+
 // 初始化用户列表
 function initUserList() {
     try {
@@ -346,6 +352,7 @@ function saveConfig(successCallback) {
     const monitor_latest = document.getElementById('monitor_latest').checked;
     const monitor_popular = document.getElementById('monitor_popular').checked;
     const monitor_hidden_gems = document.getElementById('monitor_hidden_gems').checked;
+    const monitor_doulist = document.getElementById('monitor_doulist').checked;
     
     // 获取基本配置
     const cookie = document.getElementById('cookie').value;
@@ -363,12 +370,16 @@ function saveConfig(successCallback) {
     // 构建广播用户列表
     const statusesData = JSON.stringify(statuses);
     
+    // 添加片单监控
+    const doulistsData = JSON.stringify(doulists);
+    
     // 创建表单数据
     const formData = new FormData();
     formData.append('cookie', cookie);
     formData.append('update_interval', update_interval);
     formData.append('users_data', usersData);
     formData.append('statuses_data', statusesData);
+    formData.append('doulists_data', doulistsData);
     
     // 添加监控设置
     formData.append('monitor_user_wish', monitor_user_wish);
@@ -376,6 +387,7 @@ function saveConfig(successCallback) {
     formData.append('monitor_latest', monitor_latest);
     formData.append('monitor_popular', monitor_popular);
     formData.append('monitor_hidden_gems', monitor_hidden_gems);
+    formData.append('monitor_doulist', monitor_doulist);
     
     // 添加Telegram设置
     formData.append('telegram_enabled', telegram_enabled);
@@ -908,6 +920,148 @@ function initTooltips() {
     });
 }
 
+// 初始化广播用户列表
+function initStatusList() {
+    statuses = JSON.parse(document.getElementById('config-statuses-data').textContent || '[]');
+    renderStatusList();
+}
+
+// 初始化片单列表
+function initDoulistList() {
+    doulists = JSON.parse(document.getElementById('config-doulist-data')?.textContent || '[]');
+    renderDoulistList();
+}
+
+// 渲染片单列表
+function renderDoulistList() {
+    const doulistList = document.getElementById('doulistList');
+    if (!doulistList) return;
+    
+    doulistList.innerHTML = '';
+    
+    if (doulists.length === 0) {
+        doulistList.innerHTML = '<div class="empty-list">未添加任何片单，请添加需要监控的片单</div>';
+        return;
+    }
+    
+    doulists.forEach((doulist, index) => {
+        const listItem = document.createElement('div');
+        listItem.className = 'user-item';
+        
+        const note = doulist.note || `片单 ${doulist.id}`;
+        
+        listItem.innerHTML = `
+            <div class="user-info">
+                <div class="user-id-container">
+                    <span class="user-id-label">ID:</span>
+                    <span class="user-id">${doulist.id}</span>
+                </div>
+                <div class="user-note-container">
+                    <input type="text" class="user-note" value="${note}" 
+                           placeholder="片单备注" title="编辑备注"
+                           onchange="updateDoulistNote(${index}, this.value)">
+                </div>
+                <div class="user-pages-container">
+                    <input type="number" class="user-pages" value="${doulist.pages || 5}" 
+                           min="1" max="20" title="抓取页数"
+                           onchange="updateDoulistPages(${index}, this.value)">
+                    <span class="pages-label">页</span>
+                </div>
+            </div>
+            <div class="user-actions">
+                <button type="button" class="btn-remove" onclick="removeDoulist(${index})">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        `;
+        
+        doulistList.appendChild(listItem);
+    });
+}
+
+// 添加片单
+function addDoulist() {
+    const id = document.getElementById('newDoulistId').value.trim();
+    if (!id) {
+        showToast('请输入片单ID', 'error');
+        return;
+    }
+    
+    // 检查是否已存在
+    for (const doulist of doulists) {
+        if (doulist.id === id) {
+            showToast('该片单已添加', 'error');
+            return;
+        }
+    }
+    
+    const note = document.getElementById('newDoulistNote').value.trim();
+    const pages = parseInt(document.getElementById('newDoulistPages').value, 10) || 5;
+    
+    doulists.push({
+        id: id,
+        note: note,
+        pages: Math.min(Math.max(pages, 1), 20)  // 1-20页范围
+    });
+    
+    renderDoulistList();
+    
+    // 清空输入框
+    document.getElementById('newDoulistId').value = '';
+    document.getElementById('newDoulistNote').value = '';
+    document.getElementById('newDoulistPages').value = '5';
+    
+    // 保存配置
+    saveConfig();
+}
+
+// 移除片单
+function removeDoulist(index) {
+    if (confirm('确定要移除该片单吗？')) {
+        doulists.splice(index, 1);
+        renderDoulistList();
+        saveConfig();
+    }
+}
+
+// 更新片单备注
+function updateDoulistNote(index, note) {
+    doulists[index].note = note;
+    saveConfig();
+}
+
+// 更新片单页数
+function updateDoulistPages(index, pages) {
+    const pagesNum = parseInt(pages, 10);
+    doulists[index].pages = Math.min(Math.max(pagesNum, 1), 20);  // 1-20页范围
+    saveConfig();
+}
+
+// 显示片单ID教程
+function showDoulistIdGuide() {
+    const content = `
+        <div class="guide-content">
+            <h3>如何获取豆瓣片单ID</h3>
+            <p>豆瓣片单ID是豆瓣片单网址中的数字。</p>
+            <div class="guide-image">
+                <img src="/static/images/doulist-id-guide.jpg" alt="豆瓣片单ID示例">
+            </div>
+            <p>例如，片单链接为：<code>https://www.douban.com/doulist/<strong>1907705</strong>/</code></p>
+            <p>则片单ID为：<strong>1907705</strong></p>
+            <div class="guide-tips">
+                <p><i class="bi bi-info-circle"></i> 提示：</p>
+                <ul>
+                    <li>您可以添加任何公开的豆瓣片单</li>
+                    <li>系统会自动只抓取片单中的电影和剧集内容</li>
+                    <li>片单越长，抓取的时间越长</li>
+                </ul>
+            </div>
+        </div>
+    `;
+    
+    showAlert(content, 'info');
+}
+
 // 初始化页面
 document.addEventListener('DOMContentLoaded', function() {
     // 初始化主题
@@ -915,6 +1069,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 初始化用户列表
     initUserList();
+    
+    // 初始化广播用户列表
+    initStatusList();
+    
+    // 初始化片单列表
+    initDoulistList();
     
     // 立即更新一次状态
     updateParserStatus();

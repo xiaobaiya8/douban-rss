@@ -15,7 +15,7 @@ def main():
     """主函数"""
     if len(sys.argv) < 2:
         print("请指定要运行的解析器名称。")
-        print("可用解析器: douban, douban_status, douban_hot, douban_new, douban_hidden_gems")
+        print("可用解析器: douban, douban_status, douban_hot, douban_new, douban_hidden_gems, douban_doulist")
         sys.exit(1)
         
     parser_name = sys.argv[1]
@@ -33,12 +33,13 @@ def main():
         "douban_status": "src.parsers.parse_douban_status",
         "douban_hot": "src.parsers.parse_douban_hot",
         "douban_new": "src.parsers.parse_douban_new",
-        "douban_hidden_gems": "src.parsers.parse_douban_hidden_gems"
+        "douban_hidden_gems": "src.parsers.parse_douban_hidden_gems",
+        "douban_doulist": "src.parsers.parse_douban_doulist"
     }
     
     if parser_name not in parsers:
         print(f"未知的解析器: {parser_name}")
-        print("可用解析器: douban, douban_status, douban_hot, douban_new, douban_hidden_gems")
+        print("可用解析器: douban, douban_status, douban_hot, douban_new, douban_hidden_gems, douban_doulist")
         sys.exit(1)
     
     # 动态导入并运行模块

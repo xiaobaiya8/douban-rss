@@ -352,13 +352,24 @@ def load_json_data(file_path, default_value=None):
     try:
         if os.path.exists(file_path):
             with open(file_path, 'r', encoding='utf-8') as f:
-                return json.load(f)
+                print(f"读取文件: {file_path}")
+                data = json.load(f)
+                print(f"读取文件成功: {file_path}")
+                return data
+        else:
+            print(f"文件不存在，使用默认值: {file_path}")
     except Exception as e:
         print(f"加载数据失败: {e}")
     return default_value
 
 def save_json_data(data, file_path):
     """保存JSON数据到文件"""
-    os.makedirs(os.path.dirname(file_path), exist_ok=True)
-    with open(file_path, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=2) 
+    try:
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        with open(file_path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+            print(f"写入文件成功: {file_path}")
+        return True
+    except Exception as e:
+        print(f"保存数据失败: {file_path}, 错误: {e}")
+        return False 
