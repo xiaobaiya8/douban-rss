@@ -1039,27 +1039,77 @@ function updateDoulistPages(index, pages) {
 
 // 显示片单ID教程
 function showDoulistIdGuide() {
-    const content = `
-        <div class="guide-content">
-            <h3>如何获取豆瓣片单ID</h3>
-            <p>豆瓣片单ID是豆瓣片单网址中的数字。</p>
-            <div class="guide-image">
-                <img src="/static/images/doulist-id-guide.jpg" alt="豆瓣片单ID示例">
+    const modalId = 'doulistIdGuideModal';
+    
+    // 如果模态框已存在则直接显示
+    let modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'block';
+        return;
+    }
+    
+    // 创建模态框
+    modal = document.createElement('div');
+    modal.id = modalId;
+    modal.className = 'modal';
+    
+    // 模态框内容
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>如何获取豆瓣片单ID</h3>
+                <span class="close">&times;</span>
             </div>
-            <p>例如，片单链接为：<code>https://www.douban.com/doulist/<strong>1907705</strong>/</code></p>
-            <p>则片单ID为：<strong>1907705</strong></p>
-            <div class="guide-tips">
-                <p><i class="bi bi-info-circle"></i> 提示：</p>
-                <ul>
-                    <li>您可以添加任何公开的豆瓣片单</li>
-                    <li>系统会自动只抓取片单中的电影和剧集内容</li>
-                    <li>片单越长，抓取的时间越长</li>
-                </ul>
+            <div class="modal-body">
+                <div class="guide-step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <p>访问您想要添加的豆瓣片单页面</p>
+                    </div>
+                </div>
+                <div class="guide-step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <p>查看浏览器地址栏，URL格式为：</p>
+                        <div class="url-example">
+                            <p>https://www.douban.com/doulist/<span class="highlight">1907705</span>/</p>
+                        </div>
+                        <p>其中 <span class="highlight">1907705</span> 部分即为片单ID</p>
+                    </div>
+                </div>
+                <div class="guide-step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <p>提示：</p>
+                        <ul>
+                            <li>您可以添加任何公开的豆瓣片单</li>
+                            <li>系统会自动只抓取片单中的电影和剧集内容</li>
+                            <li>片单越长，抓取的时间越长</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
     `;
     
-    showAlert(content, 'info');
+    // 添加到页面
+    document.body.appendChild(modal);
+    
+    // 获取关闭按钮并添加事件
+    const closeBtn = modal.querySelector('.close');
+    closeBtn.onclick = function() {
+        modal.style.display = 'none';
+    }
+    
+    // 点击模态框外部也可关闭
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
+    }
+    
+    // 显示模态框
+    modal.style.display = 'block';
 }
 
 // 初始化页面
