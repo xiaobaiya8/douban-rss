@@ -102,7 +102,7 @@ def generate_rss(items, title, description, link):
         
         # 描述和内容
         description_text = f"""
-        <img src="{item.get('cover_url', '')}" />
+        <img src="{item.get('cover_url', item.get('cover', ''))}" />
         <p>评分: {item.get('rating', 'N/A')}</p>
         <p>{item.get('intro', '')}</p>
         """
