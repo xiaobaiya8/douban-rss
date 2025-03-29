@@ -12,6 +12,14 @@ import schedule
 import logging
 from logging.config import dictConfig
 
+# 获取当前文件所在目录的父级的父级目录（项目根目录）
+app_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
+
+# 创建Flask应用，指定模板和静态文件目录
+app = Flask(__name__, 
+            template_folder=os.path.join(app_root, 'templates'),
+            static_folder=os.path.join(app_root, 'static'))
+
 # 配置日志，过滤掉定期状态查询的请求
 class RequestFilter(logging.Filter):
     def filter(self, record):
@@ -47,8 +55,6 @@ dictConfig({
         'handlers': ['wsgi']
     }
 })
-
-app = Flask(__name__)
 
 # 应用日志过滤器到Flask自带的日志处理器
 for handler in app.logger.handlers:
@@ -100,10 +106,13 @@ def run_parser(is_manual=False):
         parser_status["total_users"] = total_tasks
         parser_status["current_user"] = 0
         
-        def run_monitor(cmd, name):
+        def run_monitor(script_name, name):
             nonlocal current_task
             parser_status["current_user"] = current_task + 1
             parser_status["current_user_name"] = f"正在运行{name}..."
+            
+            # 使用新的脚本路径
+            cmd = [sys.executable, os.path.join(app_root, 'scripts', 'run_parser.py'), script_name]
             
             process = subprocess.Popen(
                 cmd,
@@ -133,23 +142,23 @@ def run_parser(is_manual=False):
         # 按顺序运行各个监控程序
         if monitors.get('user_wish'):
             print("\n开始运行用户想看监控...")
-            run_monitor([sys.executable, "parse_douban.py"], "用户想看监控")
+            run_monitor("douban", "用户想看监控")
         
         if monitors.get('status'):
             print("\n开始运行用户广播监控...")
-            run_monitor([sys.executable, "parse_douban_status.py"], "用户广播监控")
+            run_monitor("douban_status", "用户广播监控")
         
         if monitors.get('latest'):
             print("\n开始运行最新电影监控...")
-            run_monitor([sys.executable, "parse_douban_new.py"], "最新电影监控")
+            run_monitor("douban_new", "最新电影监控")
         
         if monitors.get('popular'):
             print("\n开始运行热门电影监控...")
-            run_monitor([sys.executable, "parse_douban_hot.py"], "热门电影监控")
+            run_monitor("douban_hot", "热门电影监控")
         
         if monitors.get('hidden_gems'):
             print("\n开始运行冷门佳片监控...")
-            run_monitor([sys.executable, "parse_douban_hidden_gems.py"], "冷门佳片监控")
+            run_monitor("douban_hidden_gems", "冷门佳片监控")
         
         print("\n所有监控程序运行完成")
         
@@ -387,31 +396,55 @@ def save_config_handler():
         # 先加载现有配置
         current_config = load_config()
         
-        # 获取用户列表
-        user_ids = request.form.get('user_ids', '').split(',')
-        user_notes = request.form.get('user_notes', '').split(',')
+        # 获取详细的用户列表数据
+        users_data = request.form.get('users_data', '[]')
+        try:
+            users = json.loads(users_data)
+            # 验证数据格式
+            if not isinstance(users, list):
+                users = []
+        except json.JSONDecodeError:
+            users = []
+            
+        # 获取广播用户列表数据
+        statuses_data = request.form.get('statuses_data', '[]')
+        try:
+            statuses = json.loads(statuses_data)
+            if not isinstance(statuses, list):
+                statuses = []
+        except json.JSONDecodeError:
+            statuses = []
+            
+        # 兼容旧版本：如果使用的是旧格式数据，转换为新格式
+        if not users and request.form.get('user_ids'):
+            user_ids = request.form.get('user_ids', '').split(',')
+            user_notes = request.form.get('user_notes', '').split(',')
+            
+            for i, uid in enumerate(user_ids):
+                uid = uid.strip()
+                if uid:
+                    note = user_notes[i] if i < len(user_notes) else ''
+                    # 旧版本默认只监控"想看"
+                    users.append({
+                        "id": uid, 
+                        "note": note.strip(),
+                        "monitor_wish": True,
+                        "monitor_do": False,
+                        "monitor_collect": False
+                    })
         
-        # 构建用户列表
-        users = []
-        for i, uid in enumerate(user_ids):
-            uid = uid.strip()
-            if uid:  # 只添加非空ID
-                note = user_notes[i] if i < len(user_notes) else ''
-                users.append({"id": uid, "note": note.strip()})
-        
-        # 获取广播用户列表
-        status_ids = request.form.get('status_ids', '').split(',')
-        status_notes = request.form.get('status_notes', '').split(',')
-        status_pages = request.form.get('status_pages', '').split(',')
-        
-        # 构建广播用户列表
-        statuses = []
-        for i, uid in enumerate(status_ids):
-            uid = uid.strip()
-            if uid:  # 只添加非空ID
-                note = status_notes[i] if i < len(status_notes) else ''
-                pages = int(status_pages[i]) if i < len(status_pages) and status_pages[i].strip().isdigit() else 1
-                statuses.append({"id": uid, "note": note.strip(), "pages": pages})
+        # 兼容旧版本：处理广播用户列表
+        if not statuses and request.form.get('status_ids'):
+            status_ids = request.form.get('status_ids', '').split(',')
+            status_notes = request.form.get('status_notes', '').split(',')
+            status_pages = request.form.get('status_pages', '').split(',')
+            
+            for i, uid in enumerate(status_ids):
+                uid = uid.strip()
+                if uid:
+                    note = status_notes[i] if i < len(status_notes) else ''
+                    pages = int(status_pages[i]) if i < len(status_pages) and status_pages[i].strip().isdigit() else 1
+                    statuses.append({"id": uid, "note": note.strip(), "pages": pages})
         
         # 获取监控配置
         monitors = {
@@ -435,7 +468,7 @@ def save_config_handler():
             "password": current_config.get('password'),
             "cookie": request.form.get('cookie', ''),
             "users": users,
-            "statuses": statuses,  # 广播用户列表
+            "statuses": statuses,
             "update_interval": int(request.form.get('update_interval', 3600)),
             "telegram": telegram_config,
             "monitors": monitors
@@ -704,11 +737,11 @@ def restart_scheduler():
 if __name__ == '__main__':
     # 导入RSS模块（如果存在）
     try:
-        from rss_api import register_rss_routes
+        from src.api.rss_api import register_rss_routes
         register_rss_routes(app)
         print("RSS 模块已加载")
-    except ImportError:
-        print("RSS 模块未找到，跳过加载")
+    except ImportError as e:
+        print(f"RSS 模块加载失败: {e}")
     
     # 禁用Werkzeug默认的日志输出
     log = logging.getLogger('werkzeug')

@@ -95,11 +95,33 @@ function renderUserList() {
     userList.innerHTML = users.map((user, index) => `
         <div class="user-item">
             <span class="user-id">${user.id}</span>
-            <input type="text" 
-                   class="user-note-input" 
-                   value="${user.note || ''}" 
-                   placeholder="添加备注" 
-                   onchange="updateUserNote(${index}, this.value)">
+            <div class="user-content">
+                <input type="text" 
+                       class="user-note-input" 
+                       value="${user.note || ''}" 
+                       placeholder="添加备注" 
+                       onchange="updateUserNote(${index}, this.value)">
+                <div class="user-monitor-types">
+                    <label class="checkbox-label small">
+                        <input type="checkbox" 
+                               ${user.monitor_wish !== false ? 'checked' : ''} 
+                               onchange="updateUserMonitorType(${index}, 'wish', this.checked)">
+                        <span>想看</span>
+                    </label>
+                    <label class="checkbox-label small">
+                        <input type="checkbox" 
+                               ${user.monitor_do === true ? 'checked' : ''} 
+                               onchange="updateUserMonitorType(${index}, 'do', this.checked)">
+                        <span>在看</span>
+                    </label>
+                    <label class="checkbox-label small">
+                        <input type="checkbox" 
+                               ${user.monitor_collect === true ? 'checked' : ''} 
+                               onchange="updateUserMonitorType(${index}, 'collect', this.checked)">
+                        <span>已看</span>
+                    </label>
+                </div>
+            </div>
             <button type="button" 
                     class="btn-delete" 
                     onclick="removeUser(${index})">
@@ -154,15 +176,38 @@ function renderStatusList() {
 function addUser() {
     const idInput = document.getElementById('newUserId');
     const noteInput = document.getElementById('newUserNote');
+    const wishInput = document.getElementById('newUserWish');
+    const doInput = document.getElementById('newUserDo');
+    const collectInput = document.getElementById('newUserCollect');
+    
     const id = idInput.value.trim();
     const note = noteInput.value.trim();
+    const monitor_wish = wishInput.checked;
+    const monitor_do = doInput.checked;
+    const monitor_collect = collectInput.checked;
     
     if (id) {
         if (!users.some(u => u.id === id)) {
-            users.push({ id, note });
+            if (!monitor_wish && !monitor_do && !monitor_collect) {
+                showToast('请至少选择一种监控类型', 'error');
+                return;
+            }
+            
+            users.push({ 
+                id, 
+                note, 
+                monitor_wish, 
+                monitor_do, 
+                monitor_collect 
+            });
+            
             renderUserList();
             idInput.value = '';
             noteInput.value = '';
+            wishInput.checked = true;
+            doInput.checked = false;
+            collectInput.checked = false;
+            
             saveConfig(() => {
                 showToast('用户添加成功');
             });
@@ -190,6 +235,39 @@ function updateUserNote(index, note) {
     users[index].note = note;
     saveConfig(() => {
         showToast('备注已更新');
+    });
+}
+
+// 更新用户监控类型
+function updateUserMonitorType(index, type, checked) {
+    if (type === 'wish') {
+        users[index].monitor_wish = checked;
+    } else if (type === 'do') {
+        users[index].monitor_do = checked;
+    } else if (type === 'collect') {
+        users[index].monitor_collect = checked;
+    }
+    
+    // 确保至少有一个监控类型被选中
+    const user = users[index];
+    if (!user.monitor_wish && !user.monitor_do && !user.monitor_collect) {
+        showToast('至少需要选择一种监控类型', 'error');
+        // 恢复之前的状态
+        if (type === 'wish') {
+            user.monitor_wish = true;
+            renderUserList(); // 重新渲染以更新UI
+        } else if (type === 'do') {
+            user.monitor_do = true;
+            renderUserList();
+        } else if (type === 'collect') {
+            user.monitor_collect = true;
+            renderUserList();
+        }
+        return;
+    }
+    
+    saveConfig(() => {
+        showToast('监控类型已更新');
     });
 }
 
@@ -279,26 +357,18 @@ function saveConfig(successCallback) {
     const telegram_chat_id = document.getElementById('telegram_chat_id').value;
     const telegram_notify_mode = document.querySelector('input[name="telegram_notify_mode"]:checked').value;
     
-    // 构建用户ID和备注列表
-    const user_ids = users.map(u => u.id).join(',');
-    const user_notes = users.map(u => u.note || '').join(',');
+    // 构建详细的用户数据
+    const usersData = JSON.stringify(users);
     
     // 构建广播用户列表
-    const status_ids = statuses.map(s => s.id).join(',');
-    const status_notes = statuses.map(s => s.note || '').join(',');
-    const status_pages = statuses.map(s => s.pages || 1).join(',');
+    const statusesData = JSON.stringify(statuses);
     
     // 创建表单数据
     const formData = new FormData();
     formData.append('cookie', cookie);
     formData.append('update_interval', update_interval);
-    formData.append('user_ids', user_ids);
-    formData.append('user_notes', user_notes);
-    
-    // 添加广播用户数据
-    formData.append('status_ids', status_ids);
-    formData.append('status_notes', status_notes);
-    formData.append('status_pages', status_pages);
+    formData.append('users_data', usersData);
+    formData.append('statuses_data', statusesData);
     
     // 添加监控设置
     formData.append('monitor_user_wish', monitor_user_wish);

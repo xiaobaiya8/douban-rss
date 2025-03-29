@@ -1,78 +1,28 @@
 import json
 import requests
-from bs4 import BeautifulSoup
 import time
 import os
 import re
 import random
+# 导入豆瓣工具模块
+from src.utils.douban_utils import extract_subject_id, load_config, check_cookie_valid, send_telegram_message, make_douban_headers, get_api_data, parse_api_item, load_json_data, save_json_data
 
 # 获取配置目录
 CONFIG_DIR = os.getenv('CONFIG_DIR', 'config')
 CONFIG_FILE = os.path.join(CONFIG_DIR, 'config.json')
 HIDDEN_GEMS_FILE = os.path.join(CONFIG_DIR, 'hidden_gems.json')
 
-def load_config():
-    """加载配置文件"""
-    try:
-        if os.path.exists(CONFIG_FILE):
-            with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
-                return json.load(f)
-    except Exception as e:
-        print(f"加载配置失败: {e}")
-    return {
-        "cookie": "",
-        "update_interval": 3600
-    }
-
 def load_hidden_gems_data():
     """加载现有的冷门佳片数据"""
-    try:
-        if os.path.exists(HIDDEN_GEMS_FILE):
-            with open(HIDDEN_GEMS_FILE, 'r', encoding='utf-8') as f:
-                return json.load(f)
-    except Exception as e:
-        print(f"加载现有数据失败: {e}")
-    return {'movies': [], 'tv_shows': [], 'update_time': ''}
+    return load_json_data(HIDDEN_GEMS_FILE)
 
 def get_douban_hidden_gems(cookie):
     """获取豆瓣冷门佳片数据"""
-    url = 'https://movie.douban.com/j/search_subjects'
-    params = {
-        'type': 'movie',
-        'tag': '冷门佳片',
-        'page_limit': 50,
-        'page_start': 0
-    }
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Cookie': cookie
-    }
-    
-    response = requests.get(url, params=params, headers=headers)
-    if response.status_code == 200:
-        return response.json()
-    else:
-        raise requests.RequestException(f"获取冷门佳片数据失败: HTTP {response.status_code}")
+    return get_api_data('movie', '冷门佳片', cookie)
 
 def get_douban_hidden_tv(cookie):
     """获取豆瓣冷门剧集数据"""
-    url = 'https://movie.douban.com/j/search_subjects'
-    params = {
-        'type': 'tv',
-        'tag': '冷门佳片',
-        'page_limit': 50,
-        'page_start': 0
-    }
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Cookie': cookie
-    }
-    
-    response = requests.get(url, params=params, headers=headers)
-    if response.status_code == 200:
-        return response.json()
-    else:
-        raise requests.RequestException(f"获取冷门剧集数据失败: HTTP {response.status_code}")
+    return get_api_data('tv', '冷门佳片', cookie)
 
 def parse_hidden_gems(cookie):
     """解析冷门佳片数据"""
@@ -116,6 +66,7 @@ def parse_hidden_gems(cookie):
         
         # 处理新条目
         for item in new_items:
+            # 使用工具模块解析API条目
             result = parse_api_item(item, cookie)
             if result:
                 # 明确设置notified为False，这是一个新条目需要通知
@@ -133,7 +84,7 @@ def parse_hidden_gems(cookie):
                 # 更新时间
                 data['update_time'] = time.strftime('%Y-%m-%d %H:%M:%S')
                 # 立即保存数据
-                save_hidden_gems_data(data)
+                save_json_data(data, HIDDEN_GEMS_FILE)
                 print(f"已保存新条目: {result['title']}")
                     
             # 添加随机延迟
@@ -162,6 +113,7 @@ def parse_hidden_gems(cookie):
         
         # 处理新条目
         for item in new_items:
+            # 使用工具模块解析API条目
             result = parse_api_item(item, cookie)
             if result:
                 # 明确设置notified为False，这是一个新条目需要通知
@@ -179,7 +131,7 @@ def parse_hidden_gems(cookie):
                 # 更新时间
                 data['update_time'] = time.strftime('%Y-%m-%d %H:%M:%S')
                 # 立即保存数据
-                save_hidden_gems_data(data)
+                save_json_data(data, HIDDEN_GEMS_FILE)
                 print(f"已保存新条目: {result['title']}")
                     
             # 添加随机延迟
@@ -203,243 +155,17 @@ def parse_hidden_gems(cookie):
     
     return data
 
-def save_hidden_gems_data(data):
-    """保存冷门佳片数据到文件"""
-    os.makedirs(CONFIG_DIR, exist_ok=True)
-    with open(HIDDEN_GEMS_FILE, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+def send_telegram_message(message, config, has_new_content=False):
+    """发送 Telegram 消息"""
+    # 直接调用导入的函数，而不是自己
+    from src.utils.douban_utils import send_telegram_message as utils_send_telegram_message
+    utils_send_telegram_message(message, config, has_new_content)
 
 def check_cookie_valid(cookie):
     """检查 cookie 是否有效"""
-    try:
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Cookie': cookie
-        }
-        
-        response = requests.get('https://www.douban.com', headers=headers, timeout=10)
-        
-        if 'login' in response.url or response.status_code == 403:
-            print("\n❌ Cookie 已失效，需要重新登录")
-            return False
-            
-        print("\n✅ Cookie 验证通过")
-        return True
-        
-    except Exception as e:
-        print(f"\n❌ 验证 Cookie 时出错: {e}")
-        return False
-
-def send_telegram_message(message, config, has_new_content=False):
-    """发送 Telegram 消息"""
-    if not config.get('telegram', {}).get('enabled'):
-        return
-    
-    bot_token = config['telegram']['bot_token']
-    chat_id = config['telegram']['chat_id']
-    notify_mode = config['telegram'].get('notify_mode', 'always')
-    
-    # 检查是否应该发送消息（基于通知模式）
-    if notify_mode == 'new_only' and not has_new_content:
-        print("没有新内容，根据通知设置跳过发送消息")
-        return
-    
-    if not bot_token or bot_token == 'your_bot_token_here' or \
-       not chat_id or chat_id == 'your_chat_id_here':
-        print("Telegram 配置无效，跳过发送消息")
-        return
-    
-    try:
-        url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-        data = {
-            "chat_id": chat_id,
-            "text": message,
-            "parse_mode": "HTML"
-        }
-        response = requests.post(url, json=data, timeout=10)
-        
-        if response.status_code == 200:
-            print("Telegram 消息发送成功")
-        else:
-            error_msg = response.json().get('description', '未知错误')
-            print(f"发送 Telegram 消息失败: {error_msg}")
-            
-            # 如果是认证错误，给出更详细的提示
-            if response.status_code == 401:
-                print("Bot Token 无效，请检查是否正确配置")
-            elif response.status_code == 404:
-                print("Bot Token 格式错误或已失效")
-            elif response.status_code == 400:
-                print("Chat ID 无效，请检查是否正确配置")
-                
-    except requests.exceptions.Timeout:
-        print("发送 Telegram 消息超时")
-    except requests.exceptions.RequestException as e:
-        print(f"发送 Telegram 消息出错: {e}")
-    except Exception as e:
-        print(f"发送 Telegram 消息时发生未知错误: {e}")
-
-def extract_subject_id(url):
-    """从 URL 中提取豆瓣 ID"""
-    match = re.search(r'subject/(\d+)', url)
-    if match:
-        return match.group(1)
-    return None
-
-def get_subject_info(subject_id, cookie, max_retries=3):
-    """获取条目详细信息"""
-    url = f'https://movie.douban.com/subject/{subject_id}/'
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Cookie': cookie
-    }
-    
-    for attempt in range(max_retries):
-        try:
-            response = requests.get(url, headers=headers)
-            if response.status_code == 200:
-                soup = BeautifulSoup(response.text, 'html.parser')
-                info = {}
-                
-                # 检查是否为电视剧
-                is_tv = '的分集短评' in response.text
-                info['type'] = 'tv' if is_tv else 'movie'
-                
-                # 获取 IMDb ID
-                imdb_span = soup.find('span', string='IMDb:')
-                if imdb_span and imdb_span.next_sibling:
-                    info['imdb_id'] = imdb_span.next_sibling.strip()
-                else:
-                    info['imdb_id'] = ''
-                
-                # 获取年份
-                year_span = soup.find('span', class_='year')
-                if year_span:
-                    year_text = year_span.text.strip('()')
-                    info['year'] = year_text
-                else:
-                    info['year'] = ''
-                
-                # 获取导演
-                info['director'] = []
-                director_text = soup.find('a', rel='v:directedBy')
-                if director_text:
-                    info['director'].append(director_text.text.strip())
-                
-                # 获取主演
-                info['actors'] = []
-                actor_links = soup.find_all('a', rel='v:starring')
-                for actor in actor_links[:3]:  # 只取前三个主演
-                    info['actors'].append(actor.text.strip())
-                
-                # 获取类型
-                info['genres'] = []
-                genre_links = soup.find_all('span', property='v:genre')
-                for genre in genre_links:
-                    info['genres'].append(genre.text.strip())
-                
-                # 获取制片国家/地区
-                info['region'] = ''
-                region_text = soup.find(string=re.compile('制片国家/地区:'))
-                if region_text and region_text.next_sibling:
-                    info['region'] = region_text.next_sibling.strip()
-                
-                # 获取语言
-                info['languages'] = ''
-                language_text = soup.find(string=re.compile('语言:'))
-                if language_text and language_text.next_sibling:
-                    info['languages'] = language_text.next_sibling.strip()
-                
-                # 获取片长
-                info['duration'] = ''
-                duration_span = soup.find('span', property='v:runtime')
-                if duration_span:
-                    info['duration'] = duration_span.text.strip()
-                
-                # 获取上映日期
-                info['release_date'] = ''
-                release_date = soup.find('span', property='v:initialReleaseDate')
-                if release_date:
-                    info['release_date'] = release_date.text.strip()
-                
-                # 获取评分人数
-                info['vote_count'] = ''
-                votes = soup.find('span', property='v:votes')
-                if votes:
-                    info['vote_count'] = votes.text.strip()
-                
-                # 获取剧集信息
-                info['episodes_info'] = {}
-                if is_tv:
-                    episode_info = soup.find('div', class_='episode_info')
-                    if episode_info:
-                        info['episodes_info']['count'] = episode_info.text.strip()
-                    
-                    episode_duration = soup.find(string=re.compile('单集片长:'))
-                    if episode_duration and episode_duration.next_sibling:
-                        info['episodes_info']['duration'] = episode_duration.next_sibling.strip()
-                
-                return info
-                
-            elif response.status_code == 404:
-                print(f"条目 {subject_id} 不存在")
-                return None
-            else:
-                print(f"获取条目 {subject_id} 失败: HTTP {response.status_code}")
-                if attempt < max_retries - 1:
-                    time.sleep(random.uniform(2, 5))
-                    continue
-                return None
-                
-        except Exception as e:
-            print(f"获取条目 {subject_id} 时出错: {e}")
-            if attempt < max_retries - 1:
-                time.sleep(random.uniform(2, 5))
-                continue
-            return None
-    
-    return None
-
-def parse_api_item(item, cookie):
-    """解析 API 返回的条目数据"""
-    try:
-        # 获取详细信息
-        subject_id = item['id']
-        info = get_subject_info(subject_id, cookie)
-        
-        if not info:
-            return None
-            
-        # 合并基本信息
-        result = {
-            'id': subject_id,
-            'title': item['title'],
-            'url': item['url'],
-            'cover': item['cover'],
-            'rate': item['rate'],
-            'rating': item.get('rating', {}).get('value', item['rate']),
-            'type': info['type'],
-            'imdb_id': info['imdb_id'],
-            'year': info['year'],
-            'director': info['director'],
-            'actors': info['actors'],
-            'genres': info['genres'],
-            'region': info['region'],
-            'languages': info['languages'],
-            'duration': info['duration'],
-            'release_date': info['release_date'],
-            'vote_count': info['vote_count']
-        }
-        
-        # 如果是电视剧，添加剧集信息
-        if info['type'] == 'tv':
-            result['episodes_info'] = info['episodes_info']
-            
-        return result
-        
-    except Exception as e:
-        print(f"解析条目 {item['id']} 时出错: {e}")
-        return None
+    # 使用从utils导入的check_cookie_valid函数，添加别名避免递归
+    from src.utils.douban_utils import check_cookie_valid as utils_check_cookie_valid
+    return utils_check_cookie_valid(cookie)
 
 def main():
     try:
@@ -538,7 +264,7 @@ def main():
                 message += "\n"
             
             # 保存数据，确保标记的notified状态被保存
-            save_hidden_gems_data(data)
+            save_json_data(data, HIDDEN_GEMS_FILE)
             
         message += "<b>冷门佳片 TOP 5:</b>\n"
         

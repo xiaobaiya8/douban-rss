@@ -5,7 +5,19 @@ import time
 import os
 import re
 import random
-import urllib.parse
+import logging
+# 导入豆瓣工具模块
+from src.utils.douban_utils import extract_subject_id, load_config, check_cookie_valid, send_telegram_message, make_douban_headers, load_json_data, save_json_data
+
+# 设置日志
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger('douban_status')
 
 # 获取配置目录
 CONFIG_DIR = os.getenv('CONFIG_DIR', 'config')
@@ -21,15 +33,16 @@ url_cache = {
     'subject_details': {}  # 条目ID -> 完整详情
 }
 
-def extract_subject_id(url):
-    """从URL中提取豆瓣ID"""
-    match = re.search(r'subject/(\d+)', url)
-    return match.group(1) if match else None
+# 全局URL缓存
+URL_CACHE = {}
 
+# 使用已导入的函数替换原有的引用
 def extract_trailer_id(url):
     """从预告片URL中提取ID"""
-    match = re.search(r'trailer/(\d+)', url)
-    return match.group(1) if match else None
+    match = re.search(r'/trailer/(\d+)', url)
+    if match:
+        return match.group(1)
+    return None
 
 def get_subject_info_from_trailer(trailer_id, cookie, max_retries=3):
     """从预告片页面获取电影/剧集信息，使用缓存"""
@@ -46,10 +59,7 @@ def get_subject_info_from_trailer(trailer_id, cookie, max_retries=3):
     # 缓存不存在，进行请求
     for attempt in range(max_retries):
         try:
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Cookie': cookie
-            }
+            headers = make_douban_headers(cookie)
             
             print(f"正在从预告片 {trailer_id} 获取电影信息...")
             
@@ -118,10 +128,7 @@ def get_subject_type(subject_id, cookie, max_retries=3):
     for attempt in range(max_retries):
         try:
             url = f'https://movie.douban.com/subject/{subject_id}/'
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Cookie': cookie
-            }
+            headers = make_douban_headers(cookie)
             
             print(f"正在获取条目 {subject_id} 的类型...")
             
@@ -253,10 +260,7 @@ def get_subject_details(subject_id, cookie, max_retries=3):
     for attempt in range(max_retries):
         try:
             url = f'https://movie.douban.com/subject/{subject_id}/'
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Cookie': cookie
-            }
+            headers = make_douban_headers(cookie)
             
             print(f"正在获取条目 {subject_id} 的完整详情...")
             
@@ -467,10 +471,7 @@ def process_status(status, cookie):
     """处理单条广播，尝试提取电影/剧集信息"""
     try:
         # 自定义请求头
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Cookie': cookie
-        }
+        headers = make_douban_headers(cookie)
         
         # 查找可能的电影/剧集链接
         subject_info = None
@@ -594,49 +595,52 @@ def process_status(status, cookie):
     
     return None
 
-def get_douban_status_html(user_id, cookie, page=1):
-    """获取豆瓣广播HTML内容"""
-    url = f'https://www.douban.com/people/{user_id}/statuses?p={page}'
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Cookie': cookie
-    }
+def get_douban_status_html(user_id, cookie, pages=1):
+    """获取豆瓣用户广播的HTML内容"""
+    all_html = ""
+    page_count = 0
     
-    response = requests.get(url, headers=headers)
-    if response.status_code == 200:
-        return response.text
-    else:
-        raise requests.RequestException(f"获取广播HTML失败: HTTP {response.status_code}")
+    # 使用douban_utils生成请求头
+    headers = make_douban_headers(cookie)
+    
+    try:
+        for page in range(1, pages + 1):
+            url = f"https://www.douban.com/people/{user_id}/statuses?p={page}"
+            print(f"获取第 {page}/{pages} 页广播")
+            
+            response = requests.get(url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                all_html += response.text
+                page_count += 1
+                
+                # 在获取多页时添加随机延迟
+                if page < pages:
+                    delay = random.uniform(1, 3)  # 1-3秒随机延迟
+                    print(f"等待 {delay:.1f} 秒...")
+                    time.sleep(delay)
+            else:
+                print(f"获取第 {page} 页失败: HTTP状态码 {response.status_code}")
+                break
+                
+        print(f"成功获取了 {page_count} 页广播")
+        return all_html
+    except Exception as e:
+        print(f"获取广播时出错: {e}")
+        return ""
 
 def load_config():
     """加载配置文件"""
-    try:
-        if os.path.exists(CONFIG_FILE):
-            with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
-                return json.load(f)
-    except Exception as e:
-        print(f"加载配置失败: {e}")
-    return {
-        "cookie": "",
-        "update_interval": 3600
-    }
+    # 使用从utils导入的load_config函数，添加别名避免递归
+    from src.utils.douban_utils import load_config as load_config_from_utils
+    return load_config_from_utils()
 
 def load_all_status_data():
     """加载所有广播数据"""
-    try:
-        if os.path.exists(STATUS_FILE):
-            with open(STATUS_FILE, 'r', encoding='utf-8') as f:
-                return json.load(f)
-    except Exception as e:
-        print(f"加载广播数据失败: {e}")
-    return {}
+    return load_json_data(STATUS_FILE, {})
 
 def save_all_status_data(all_data):
     """保存所有广播数据到文件"""
-    # 确保配置目录存在
-    os.makedirs(CONFIG_DIR, exist_ok=True)
-    with open(STATUS_FILE, 'w', encoding='utf-8') as f:
-        json.dump(all_data, f, ensure_ascii=False, indent=2)
+    save_json_data(all_data, STATUS_FILE)
 
 def is_duplicate(subject_id, user_id, all_data):
     """检查条目是否重复"""
@@ -719,141 +723,26 @@ def parse_status_html(html_content, user_id, all_data, cookie):
 
 def send_telegram_message(message, config, has_new_content=False):
     """发送 Telegram 消息"""
-    if not config.get('telegram', {}).get('enabled'):
-        return
-    
-    bot_token = config['telegram']['bot_token']
-    chat_id = config['telegram']['chat_id']
-    notify_mode = config['telegram'].get('notify_mode', 'always')
-    
-    # 检查是否应该发送消息（基于通知模式）
-    if notify_mode == 'new_only' and not has_new_content:
-        print("没有新内容，根据通知设置跳过发送消息")
-        return
-    
-    # 检查 bot_token 和 chat_id 是否有效
-    if not bot_token or bot_token == 'your_bot_token_here' or \
-       not chat_id or chat_id == 'your_chat_id_here':
-        print("Telegram 配置无效，跳过发送消息")
-        return
-    
-    try:
-        url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-        data = {
-            "chat_id": chat_id,
-            "text": message,
-            "parse_mode": "HTML"
-        }
-        response = requests.post(url, json=data, timeout=10)  # 添加超时设置
-        
-        if response.status_code == 200:
-            print("Telegram 消息发送成功")
-        else:
-            error_msg = response.json().get('description', '未知错误')
-            print(f"发送 Telegram 消息失败: {error_msg}")
-                
-    except Exception as e:
-        print(f"发送 Telegram 消息时发生错误: {e}")
+    # 使用从utils导入的send_telegram_message函数，添加别名避免递归
+    from src.utils.douban_utils import send_telegram_message as send_telegram_message_from_utils
+    send_telegram_message_from_utils(message, config, has_new_content)
 
 def cleanup_temp_files():
     """清理临时文件"""
-    try:
-        # 删除所有 status_*.html 文件
-        for file in os.listdir():
-            if file.startswith('status_') and file.endswith('.html'):
-                os.remove(file)
-                print(f"已删除临时文件: {file}")
-    except Exception as e:
-        print(f"清理临时文件时出错: {e}")
-
-def fetch_user_status(user_id, cookie, pages=1):
-    """获取用户广播数据"""
-    try:
-        print(f"\n处理用户 {user_id} 的广播数据...")
-        
-        # 初始化数据
-        all_data = load_all_status_data()
-        has_updates = False
-        
-        # 遍历指定页数
-        for page in range(1, pages + 1):
-            print(f"正在获取第 {page} 页广播...")
-            
-            # 获取HTML内容
-            html_file = f'status_{user_id}_p{page}.html'
-            if os.path.exists(html_file):
-                os.remove(html_file)
-                print(f"已删除旧的HTML文件: {html_file}")
-            
-            html_content = get_douban_status_html(user_id, cookie, page)
-            
-            # 保存HTML内容到文件
-            with open(html_file, 'w', encoding='utf-8') as f:
-                f.write(html_content)
-                print(f"已保存新的HTML文件: {html_file}")
-            
-            print(f"开始解析第 {page} 页广播数据...")
-            page_data = parse_status_html(html_content, user_id, all_data, cookie)
-            
-            # 检查是否有更新
-            if page_data['new_items_count'] > 0:
-                has_updates = True
-            
-            # 如果不是最后一页，添加随机延迟
-            if page < pages:
-                delay = random.uniform(3, 5)  # 3-5秒的随机延迟
-                print(f"等待 {delay:.1f} 秒后获取下一页...")
-                time.sleep(delay)
-        
-        # 确保更新状态被保存
-        user_data = all_data.get(user_id, {})
-        user_data['has_updates'] = has_updates
-        all_data[user_id] = user_data
-        save_all_status_data(all_data)
-        
-        if has_updates:
-            print(f"用户 {user_id} 广播数据有更新")
-        else:
-            print(f"用户 {user_id} 广播数据无变化")
-        
-        return has_updates
-        
-    except Exception as e:
-        print(f"处理用户 {user_id} 广播时出错: {e}")
-        raise
-    finally:
-        # 清理临时文件
-        cleanup_temp_files()
+    # 清理其他可能的临时文件
+    pass
 
 def load_url_cache():
     """加载URL缓存"""
-    global url_cache
-    try:
-        if os.path.exists(URL_CACHE_FILE):
-            with open(URL_CACHE_FILE, 'r', encoding='utf-8') as f:
-                cache = json.load(f)
-                # 确保所有缓存键存在
-                url_cache = {
-                    'short_urls': cache.get('short_urls', {}),
-                    'trailer_urls': cache.get('trailer_urls', {}),
-                    'subject_types': cache.get('subject_types', {}),
-                    'subject_details': cache.get('subject_details', {})
-                }
-                print(f"已加载URL缓存: {len(url_cache['short_urls'])}个短链接, {len(url_cache['trailer_urls'])}个预告片URL, " +
-                      f"{len(url_cache['subject_types'])}个条目类型, {len(url_cache['subject_details'])}个条目详情")
-    except Exception as e:
-        print(f"加载URL缓存失败: {e}")
-        # 初始化新的缓存
-        url_cache = {'short_urls': {}, 'trailer_urls': {}, 'subject_types': {}, 'subject_details': {}}
+    global URL_CACHE
+    URL_CACHE = load_json_data(URL_CACHE_FILE, {})
+    print(f"已加载 {len(URL_CACHE)} 条URL缓存")
 
 def save_url_cache():
-    """保存URL缓存到文件"""
+    """保存URL缓存"""
     try:
-        os.makedirs(CONFIG_DIR, exist_ok=True)
-        with open(URL_CACHE_FILE, 'w', encoding='utf-8') as f:
-            json.dump(url_cache, f, ensure_ascii=False, indent=2)
-        print(f"已保存URL缓存: {len(url_cache['short_urls'])}个短链接, {len(url_cache['trailer_urls'])}个预告片URL, " +
-              f"{len(url_cache['subject_types'])}个条目类型, {len(url_cache['subject_details'])}个条目详情")
+        save_json_data(URL_CACHE, URL_CACHE_FILE)
+        print(f"已保存 {len(URL_CACHE)} 条URL缓存")
     except Exception as e:
         print(f"保存URL缓存失败: {e}")
 
@@ -868,6 +757,13 @@ def main():
         # 验证 cookie
         if not cookie:
             message = "❌ Cookie 未配置，请先配置 Cookie"
+            print(message)
+            send_telegram_message(message, config, False)
+            return
+            
+        # 使用douban_utils检查cookie有效性
+        if not check_cookie_valid(cookie):
+            message = "❌ Cookie 已失效，请更新 Cookie"
             print(message)
             send_telegram_message(message, config, False)
             return

@@ -3,12 +3,20 @@
 提供RSS格式的API接口，与主程序分离便于维护
 """
 
-from flask import request, Response
+from flask import request, Response, Flask
 import os
 import json
 from datetime import datetime
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
+
+# 获取当前文件所在目录的父级的父级目录（项目根目录）
+app_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
+
+# 如果有单独的RSS API Flask应用，确保它也能找到模板和静态文件
+rss_app = Flask(__name__, 
+               template_folder=os.path.join(app_root, 'templates'),
+               static_folder=os.path.join(app_root, 'static'))
 
 # 获取配置目录
 CONFIG_DIR = os.getenv('CONFIG_DIR', '.')

@@ -1,30 +1,34 @@
-# Douban Movies/TV API
+# Douban Movie/TV API
 
-A tool for monitoring Douban movie and TV series information and providing API interfaces. It supports automatic synchronization of user wishlists, latest movies/TV shows, popular content, and hidden gems.
+A tool for monitoring Douban movies and TV series information and providing API interfaces, supporting automatic synchronization of user watchlists, broadcast lists, latest movies/TV series, popular movies/TV series, and hidden gems.
 
-[中文文档](https://github.com/xiaobaiya8/douban-rss/blob/main/README.md)
+> **Latest Update [v1.0.1.2]**: Optimized code structure, implemented modular design, improved stability. Fixed RSSHub interface issues. Enhanced broadcast subscription descriptions. Added support for monitoring "Want to Watch", "Watching", and "Watched" lists. For more details, please check the [Changelog](#changelog).
+
+[中文版](https://github.com/xiaobaiya8/douban-rss/blob/main/README.md)
 
 ## Community
 
-Join our Telegram group for discussions: [Douban RSS Group](https://t.me/douban_rss)
+Join our Telegram group for discussions: [Douban RSS Discussion Group](https://t.me/douban_rss)
 
 ## Screenshots
 
 | Web Interface | Telegram Notifications |
-|---------------|------------------------|
+|---------|--------------|
 | <img src="https://raw.githubusercontent.com/xiaobaiya8/douban-rss/main/docs/web-interface.png" width="400"> | <img src="https://raw.githubusercontent.com/xiaobaiya8/douban-rss/main/docs/telegram-notifications.png" width="400"> |
 
 ## Features
 
-- **User Wishlist Monitoring**: Automatically synchronize movies and TV shows from Douban user wishlists
-- **Popular List Monitoring**: Provides Douban's latest, most popular, and hidden gem lists
-- **Radarr/Sonarr Compatible**: API interface format compatible with Radarr and Sonarr import
-- **RSS Feed Support**: Provides standard RSS subscription interfaces for RSS readers and MoviePilot
-- **Custom Update Frequency**: Configurable automatic update intervals
-- **Multi-user Support**: Monitor wishlists from multiple Douban users simultaneously
-- **Telegram Notifications**: Support for sending update notifications via Telegram
-- **User-friendly Web Configuration Interface**: Easy-to-use configuration management page
-- **Dark/Light Theme**: Support for automatic and manual dark/light theme switching
+- **User List Monitoring**: Automatically synchronize movies and TV series from Douban users' "Want to Watch", "Watching", and "Watched" lists
+- **User Broadcast Monitoring**: Automatically parse movies and TV series shared in user broadcasts, supporting popular movie and TV account subscriptions
+- **Popular List Monitoring**: Provide Douban latest, most popular, and hidden gems lists
+- **Radarr/Sonarr Compatible**: API interface format compatible with Radarr and Sonarr imports
+- **RSS Subscription Support**: Provide standard RSS subscription interface, compatible with various RSS readers and MoviePilot
+- **Custom Update Frequency**: Configurable automatic update time intervals
+- **Multi-user Support**: Monitor multiple Douban users' lists and broadcasts simultaneously
+- **Telegram Notifications**: Support sending update notifications via Telegram
+- **Clean and Easy-to-use Web Configuration Interface**: Provide user-friendly configuration management page
+- **Dark/Light Theme**: Support automatic and manual dark/light theme switching
+- **Modular Code Structure**: Optimized code architecture, improving stability and maintainability
 
 ## Quick Start
 
@@ -185,3 +189,16 @@ Douban Cookies usually have a relatively long validity period. If prompted as in
 ## Disclaimer
 
 This project is for personal learning and research purposes only. Do not use it for commercial purposes. When using this tool, please comply with Douban's terms of use and relevant laws and regulations. 
+
+## Changelog
+
+View the [complete changelog](CHANGELOG.md) for all project updates.
+
+### Latest Version
+
+**[v1.0.1.2] - 2024-03-29**
+- Code structure optimization: Organized code by functionality into different directories with modular design
+- Fixed RSSHub interface issues
+- Optimized API service startup process
+- Resolved recursive call issues, improving stability
+- Enhanced Docker configuration for better support across different environments 

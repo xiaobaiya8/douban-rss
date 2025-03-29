@@ -44,10 +44,8 @@
         <div class="tabs">
             <div class="tab-buttons">
                 <button class="tab-button active" onclick="switchTab('basic')"><i class="bi bi-gear"></i> 基本配置</button>
-                <button class="tab-button" onclick="switchTab('users')"><i class="bi bi-people"></i> 用户列表</button>
+                <button class="tab-button" onclick="switchTab('users')"><i class="bi bi-people"></i> 用户订阅</button>
                 <button class="tab-button" onclick="switchTab('statuses')"><i class="bi bi-broadcast"></i> 广播订阅</button>
-                <button class="tab-button" onclick="switchTab('telegram')"><i class="bi bi-telegram"></i> Telegram 通知</button>
-                <button class="tab-button" onclick="switchTab('interval')"><i class="bi bi-clock"></i> 更新间隔</button>
                 <button class="tab-button" onclick="switchTab('password')"><i class="bi bi-key"></i> 修改密码</button>
                 <button class="tab-button" onclick="switchTab('api')"><i class="bi bi-code-slash"></i> API接口</button>
             </div>
@@ -58,9 +56,60 @@
             <div class="form-group">
                 <label>Cookie</label>
                 <textarea id="cookie" name="cookie" rows="3">{{ config.cookie }}</textarea>
-                <div class="help-text">从豆瓣网站复制 Cookie</div>
+                <div class="help-text">请登录<a href="https://movie.douban.com/" target="_blank">豆瓣电影网站</a>并从浏览器开发者工具中获取有效的 Cookie 信息。注意：必须是豆瓣电影域名下的 Cookie，其他域名可能导致 API 调用失败。</div>
                 <div class="cookie-actions">
                     <button type="button" class="btn-secondary" onclick="checkCookie()" id="checkCookieBtn"><i class="bi bi-shield-check"></i> 检测 Cookie 有效性</button>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>更新间隔（秒）</label>
+                <div class="input-with-icon">
+                    <i class="bi bi-clock"></i>
+                    <input type="number" id="update_interval" name="update_interval" 
+                          value="{{ config.get('update_interval', 3600) }}" min="300">
+                </div>
+                <div class="help-text">最小间隔 300 秒（5分钟）</div>
+            </div>
+            
+            <div class="form-group">
+                <label>Telegram 通知</label>
+                <div class="telegram-config">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="telegram_enabled" name="telegram_enabled" 
+                               {{ 'checked' if config.get('telegram', {}).get('enabled') else '' }}>
+                        <span><i class="bi bi-bell"></i> 启用 Telegram 通知</span>
+                    </label>
+                    
+                    <div class="telegram-settings" id="telegramSettings">
+                        <div class="input-group">
+                            <label>Bot Token</label>
+                            <input type="text" id="telegram_bot_token" name="telegram_bot_token" 
+                                   value="{{ config.get('telegram', {}).get('bot_token', '') }}"
+                                   placeholder="输入你的 Bot Token">
+                        </div>
+                        <div class="input-group">
+                            <label>Chat ID</label>
+                            <input type="text" id="telegram_chat_id" name="telegram_chat_id"
+                                   value="{{ config.get('telegram', {}).get('chat_id', '') }}"
+                                   placeholder="输入你的 Chat ID">
+                        </div>
+                        <div class="input-group">
+                            <label>通知频率</label>
+                            <div class="notification-options">
+                                <label class="radio-label">
+                                    <input type="radio" name="telegram_notify_mode" value="new_only" 
+                                           {{ 'checked' if config.get('telegram', {}).get('notify_mode') == 'new_only' else '' }}>
+                                    <span><i class="bi bi-filter-circle"></i> 仅当有新内容时通知</span>
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" name="telegram_notify_mode" value="always" 
+                                           {{ 'checked' if config.get('telegram', {}).get('notify_mode') != 'new_only' else '' }}>
+                                    <span><i class="bi bi-bell"></i> 每次更新都通知</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             
@@ -103,10 +152,10 @@
         <!-- 用户列表配置 -->
         <div id="users-tab" class="tab-content">
             <div class="form-group">
-                <label>用户列表</label>
+                <label>用户订阅</label>
                 <div class="user-help">
                     <i class="bi bi-info-circle"></i> 
-                    <span>用户ID可在豆瓣个人主页URL中获取，例如：https://www.douban.com/people/<strong>user_id</strong>/</span>
+                    <span>订阅用户的电影和剧集。添加用户时可选择监控想看、在看、已看列表。用户ID可在豆瓣个人主页URL中获取，例如：https://www.douban.com/people/<strong>user_id</strong>/</span>
                     <button type="button" class="btn-help" onclick="showUserIdGuide()"><i class="bi bi-question-circle"></i> 查看教程</button>
                 </div>
                 <div class="user-add">
@@ -116,6 +165,20 @@
                     <input type="text" 
                            id="newUserNote" 
                            placeholder="输入备注（可选）">
+                    <div class="monitor-options">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="newUserWish" checked>
+                            <span>想看</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="newUserDo">
+                            <span>在看</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="newUserCollect">
+                            <span>已看</span>
+                        </label>
+                    </div>
                     <button type="button" 
                             class="btn-primary" 
                             onclick="addUser()"><i class="bi bi-plus-lg"></i> 添加</button>
@@ -130,7 +193,7 @@
                 <label>广播订阅列表</label>
                 <div class="user-help">
                     <i class="bi bi-info-circle"></i> 
-                    <span>用户ID可在豆瓣个人主页URL中获取，例如：https://www.douban.com/people/<strong>user_id</strong>/</span>
+                    <span>订阅用户广播中分享的电影或剧集。例如订阅<a href="https://www.douban.com/people/180473770/statuses" target="_blank">8分电影新成员</a>的广播。用户ID可在豆瓣个人主页URL中获取，例如：https://www.douban.com/people/<strong>user_id</strong>/</span>
                     <button type="button" class="btn-help" onclick="showUserIdGuide()"><i class="bi bi-question-circle"></i> 查看教程</button>
                 </div>
                 <div class="user-add">
@@ -143,63 +206,6 @@
                     <button type="button" class="btn-primary" onclick="addStatus()"><i class="bi bi-plus-lg"></i> 添加</button>
                 </div>
                 <div id="statusList" class="user-list"></div>
-            </div>
-        </div>
-
-        <!-- Telegram 配置 -->
-        <div id="telegram-tab" class="tab-content">
-            <div class="form-group">
-                <label>Telegram 通知</label>
-                <div class="telegram-config">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="telegram_enabled" name="telegram_enabled" 
-                               {{ 'checked' if config.get('telegram', {}).get('enabled') else '' }}>
-                        <span><i class="bi bi-bell"></i> 启用 Telegram 通知</span>
-                    </label>
-                    
-                    <div class="telegram-settings" id="telegramSettings">
-                        <div class="input-group">
-                            <label>Bot Token</label>
-                            <input type="text" id="telegram_bot_token" name="telegram_bot_token" 
-                                   value="{{ config.get('telegram', {}).get('bot_token', '') }}"
-                                   placeholder="输入你的 Bot Token">
-                        </div>
-                        <div class="input-group">
-                            <label>Chat ID</label>
-                            <input type="text" id="telegram_chat_id" name="telegram_chat_id"
-                                   value="{{ config.get('telegram', {}).get('chat_id', '') }}"
-                                   placeholder="输入你的 Chat ID">
-                        </div>
-                        <div class="input-group">
-                            <label>通知频率</label>
-                            <div class="notification-options">
-                                <label class="radio-label">
-                                    <input type="radio" name="telegram_notify_mode" value="new_only" 
-                                           {{ 'checked' if config.get('telegram', {}).get('notify_mode') == 'new_only' else '' }}>
-                                    <span><i class="bi bi-filter-circle"></i> 仅当有新内容时通知</span>
-                                </label>
-                                <label class="radio-label">
-                                    <input type="radio" name="telegram_notify_mode" value="always" 
-                                           {{ 'checked' if config.get('telegram', {}).get('notify_mode') != 'new_only' else '' }}>
-                                    <span><i class="bi bi-bell"></i> 每次更新都通知</span>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 更新间隔配置 -->
-        <div id="interval-tab" class="tab-content">
-            <div class="form-group">
-                <label>更新间隔（秒）</label>
-                <div class="input-with-icon">
-                    <i class="bi bi-clock"></i>
-                <input type="number" id="update_interval" name="update_interval" 
-                       value="{{ config.get('update_interval', 3600) }}" min="300">
-                </div>
-                <div class="help-text">最小间隔 300 秒（5分钟）</div>
             </div>
         </div>
 
