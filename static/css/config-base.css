@@ -58,21 +58,25 @@ body.loaded {
 
 /* 头部样式 */
 .header {
-    margin-bottom: 30px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.logo-img {
+    height: 40px;
+    margin-right: 10px;
+    border-radius: 5px;
 }
 
 .header h1 {
     margin: 0;
-    color: var(--dark-color);
-    font-size: 1.8rem;
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    font-size: 1.5rem;
+    color: var(--primary-color);
+    flex-grow: 1;
 }
 
 .header h1 i {
