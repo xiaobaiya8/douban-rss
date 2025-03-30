@@ -115,6 +115,31 @@
                                 </label>
                             </div>
                         </div>
+                        
+                        <!-- 代理设置 -->
+                        <div class="input-group">
+                            <label>代理设置 <i class="bi bi-shield-lock"></i></label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="telegram_proxy_enabled" name="telegram_proxy_enabled" 
+                                       {{ 'checked' if config.get('telegram', {}).get('proxy', {}).get('enabled') else '' }}>
+                                <span><i class="bi bi-globe"></i> 启用代理</span>
+                            </label>
+                            <div id="telegramProxySettings" class="{{ 'show' if config.get('telegram', {}).get('proxy', {}).get('enabled') else '' }}">
+                                <div class="proxy-type">
+                                    <label>代理类型</label>
+                                    <select id="telegram_proxy_type" name="telegram_proxy_type">
+                                        <option value="http" {{ 'selected' if config.get('telegram', {}).get('proxy', {}).get('type') == 'http' else '' }}>HTTP</option>
+                                        <option value="socks5" {{ 'selected' if config.get('telegram', {}).get('proxy', {}).get('type') == 'socks5' else '' }}>SOCKS5</option>
+                                    </select>
+                                </div>
+                                <div class="proxy-url">
+                                    <label>代理地址</label>
+                                    <input type="text" id="telegram_proxy_url" name="telegram_proxy_url" 
+                                           value="{{ config.get('telegram', {}).get('proxy', {}).get('url', '') }}"
+                                           placeholder="例如: 127.0.0.1:7890">
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

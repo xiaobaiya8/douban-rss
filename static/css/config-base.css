@@ -543,37 +543,71 @@ input[type="number"] {
 
 /* Telegram设置样式 */
 .telegram-config {
-    background: var(--light-color);
-    padding: 15px;
-    border-radius: var(--border-radius);
     margin-top: 10px;
-    transition: var(--transition);
+    padding: 15px;
+    background-color: rgba(0,0,0,0.03);
+    border-radius: 8px;
+    transition: all 0.3s ease;
 }
 
 .telegram-config:hover {
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    background-color: rgba(0,0,0,0.05);
 }
 
 .telegram-settings {
     margin-top: 15px;
-    padding-top: 15px;
-    border-top: 1px solid var(--border-color);
+    padding-left: 10px;
+    border-left: 3px solid var(--primary-color);
     display: none;
-    animation: fadeIn 0.3s ease;
+    opacity: 0;
+    transition: all 0.3s ease;
 }
 
 .telegram-settings.show {
     display: block;
+    opacity: 1;
 }
 
-.input-group {
-    margin-bottom: 15px;
+/* Telegram代理设置样式 */
+#telegramProxySettings {
+    margin-top: 15px;
+    padding: 10px;
+    border-radius: 5px;
+    background-color: rgba(0, 0, 0, 0.05);
+    display: none;
+    opacity: 0;
+    transition: all 0.3s ease;
 }
 
-.input-group label {
+#telegramProxySettings.show {
+    display: block;
+    opacity: 1;
+}
+
+.proxy-type, .proxy-url {
+    margin-bottom: 8px;
+}
+
+.proxy-type label, .proxy-url label {
     display: block;
     margin-bottom: 5px;
-    color: var(--light-text);
+    font-weight: 600;
+    font-size: 0.9em;
+    color: var(--text-color-secondary);
+}
+
+.proxy-type select, .proxy-url input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--input-bg);
+    color: var(--text-color);
+}
+
+.proxy-type select:focus, .proxy-url input:focus {
+    border-color: var(--primary-color);
+    outline: none;
 }
 
 /* 密码表单样式 */

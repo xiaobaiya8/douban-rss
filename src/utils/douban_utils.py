@@ -314,7 +314,28 @@ def send_telegram_message(message, config, has_new_content=False):
             "text": message,
             "parse_mode": "HTML"
         }
-        response = requests.post(url, json=data, timeout=10)
+        
+        # 设置代理
+        proxies = None
+        if config.get('telegram', {}).get('proxy', {}).get('enabled'):
+            proxy_type = config['telegram']['proxy'].get('type', 'http')
+            proxy_url = config['telegram']['proxy'].get('url', '')
+            
+            if proxy_url:
+                if proxy_type == 'http':
+                    proxies = {
+                        'http': f'http://{proxy_url}',
+                        'https': f'http://{proxy_url}'
+                    }
+                elif proxy_type == 'socks5':
+                    proxies = {
+                        'http': f'socks5://{proxy_url}',
+                        'https': f'socks5://{proxy_url}'
+                    }
+                print(f"使用{proxy_type}代理: {proxy_url}")
+        
+        # 使用代理发送请求
+        response = requests.post(url, json=data, proxies=proxies, timeout=10)
         
         if response.status_code == 200:
             print("Telegram 消息发送成功")

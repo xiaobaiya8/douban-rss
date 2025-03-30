@@ -473,7 +473,13 @@ def save_config_handler():
             "enabled": request.form.get('telegram_enabled') == 'true',
             "bot_token": request.form.get('telegram_bot_token', ''),
             "chat_id": request.form.get('telegram_chat_id', ''),
-            "notify_mode": request.form.get('telegram_notify_mode', 'always')
+            "notify_mode": request.form.get('telegram_notify_mode', 'always'),
+            # 添加代理配置
+            "proxy": {
+                "enabled": request.form.get('telegram_proxy_enabled') == 'true',
+                "type": request.form.get('telegram_proxy_type', 'http'),
+                "url": request.form.get('telegram_proxy_url', '')
+            }
         }
         
         config = {

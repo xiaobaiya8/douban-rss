@@ -362,7 +362,12 @@ function saveConfig(successCallback) {
     const telegram_enabled = document.getElementById('telegram_enabled').checked;
     const telegram_bot_token = document.getElementById('telegram_bot_token').value;
     const telegram_chat_id = document.getElementById('telegram_chat_id').value;
-    const telegram_notify_mode = document.querySelector('input[name="telegram_notify_mode"]:checked').value;
+    const telegram_notify_mode = document.querySelector('input[name="telegram_notify_mode"]:checked')?.value || 'always';
+    
+    // 添加Telegram代理配置
+    const telegram_proxy_enabled = document.getElementById('telegram_proxy_enabled')?.checked || false;
+    const telegram_proxy_type = document.getElementById('telegram_proxy_type')?.value || 'http';
+    const telegram_proxy_url = document.getElementById('telegram_proxy_url')?.value || '';
     
     // 构建详细的用户数据
     const usersData = JSON.stringify(users);
@@ -394,6 +399,11 @@ function saveConfig(successCallback) {
     formData.append('telegram_bot_token', telegram_bot_token);
     formData.append('telegram_chat_id', telegram_chat_id);
     formData.append('telegram_notify_mode', telegram_notify_mode);
+    
+    // 添加Telegram代理配置
+    formData.append('telegram_proxy_enabled', telegram_proxy_enabled);
+    formData.append('telegram_proxy_type', telegram_proxy_type);
+    formData.append('telegram_proxy_url', telegram_proxy_url);
     
     // 发送请求
     fetch('/save_config', {
@@ -564,15 +574,32 @@ function runParser() {
 
 // 处理 Telegram 设置的显示/隐藏
 function updateTelegramSettings() {
-    const telegramEnabled = document.getElementById('telegram_enabled');
-    const telegramSettings = document.getElementById('telegramSettings');
+    const enabled = document.getElementById('telegram_enabled').checked;
+    const settingsDiv = document.getElementById('telegramSettings');
     
-    if (!telegramEnabled || !telegramSettings) return;
+    if (settingsDiv) {
+        if (enabled) {
+            settingsDiv.classList.add('show');
+        } else {
+            settingsDiv.classList.remove('show');
+        }
+    }
     
-    if (telegramEnabled.checked) {
-        telegramSettings.classList.add('show');
-    } else {
-        telegramSettings.classList.remove('show');
+    // 更新代理设置显示状态
+    updateTelegramProxySettings();
+}
+
+// 添加更新代理设置的函数
+function updateTelegramProxySettings() {
+    const proxyEnabled = document.getElementById('telegram_proxy_enabled')?.checked;
+    const proxySettingsDiv = document.getElementById('telegramProxySettings');
+    
+    if (proxySettingsDiv) {
+        if (proxyEnabled) {
+            proxySettingsDiv.classList.add('show');
+        } else {
+            proxySettingsDiv.classList.remove('show');
+        }
     }
 }
 
@@ -1192,42 +1219,67 @@ document.addEventListener('DOMContentLoaded', function() {
     if (telegramEnabled) {
         updateTelegramSettings();
         
-        // 只在用户手动改变时保存配置
         telegramEnabled.addEventListener('change', function() {
             updateTelegramSettings();
-            saveConfig(() => {
+            saveConfig(function() {
                 showToast('Telegram 配置已更新');
             });
         });
     }
     
-    // 添加 Bot Token 和 Chat ID 的实时保存
+    // 处理 Telegram Bot Token 输入
     const telegramBotToken = document.getElementById('telegram_bot_token');
     if (telegramBotToken) {
         telegramBotToken.addEventListener('input', debounce(function() {
-            saveConfig(() => {
-                showToast('Bot Token 已更新');
-            });
+            saveConfig();
         }, 1000));
     }
     
+    // 处理 Telegram Chat ID 输入
     const telegramChatId = document.getElementById('telegram_chat_id');
     if (telegramChatId) {
         telegramChatId.addEventListener('input', debounce(function() {
-            saveConfig(() => {
-                showToast('Chat ID 已更新');
-            });
+            saveConfig();
         }, 1000));
     }
     
-    // 添加通知模式单选按钮的事件监听
+    // 处理 Telegram 通知模式选择
     document.querySelectorAll('input[name="telegram_notify_mode"]').forEach(radio => {
         radio.addEventListener('change', function() {
-            saveConfig(() => {
+            saveConfig(function() {
                 showToast('通知模式已更新');
             });
         });
     });
+    
+    // 处理 Telegram 代理设置
+    const telegramProxyCheckbox = document.getElementById('telegram_proxy_enabled');
+    if (telegramProxyCheckbox) {
+        telegramProxyCheckbox.addEventListener('change', function() {
+            updateTelegramProxySettings();
+            saveConfig(function() {
+                showToast('代理设置已更新');
+            });
+        });
+    }
+    
+    // 处理 Telegram 代理类型选择
+    const telegramProxyType = document.getElementById('telegram_proxy_type');
+    if (telegramProxyType) {
+        telegramProxyType.addEventListener('change', function() {
+            saveConfig(function() {
+                showToast('代理类型已更新');
+            });
+        });
+    }
+    
+    // 处理 Telegram 代理地址输入
+    const telegramProxyUrl = document.getElementById('telegram_proxy_url');
+    if (telegramProxyUrl) {
+        telegramProxyUrl.addEventListener('input', debounce(function() {
+            saveConfig();
+        }, 1000));
+    }
     
     // 从本地存储恢复上次打开的tab
     const lastTab = localStorage.getItem('douban_config_active_tab');
