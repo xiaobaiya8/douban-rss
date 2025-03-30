@@ -467,8 +467,11 @@ def get_subject_details(subject_id, cookie, max_retries=3):
     
     return None
 
-def process_status(status, cookie):
-    """处理单条广播，尝试提取电影/剧集信息"""
+def process_status(status, cookie, early_check=False):
+    """处理单条广播，尝试提取电影/剧集信息
+    
+    当early_check为True时，只提取subject_id并返回，不获取详细信息
+    """
     try:
         # 自定义请求头
         headers = make_douban_headers(cookie)
@@ -486,7 +489,9 @@ def process_status(status, cookie):
                 if subject_link:
                     subject_url = subject_link['href']
                     subject_id = extract_subject_id(subject_url)
-                    if subject_id:
+                    if subject_id and early_check:
+                        return {"id": subject_id, "title": subject_link.text.strip()}
+                    elif subject_id:
                         # 获取完整电影信息
                         subject_info = get_subject_details(subject_id, cookie)
         
@@ -502,16 +507,21 @@ def process_status(status, cookie):
                     match = re.search(r'/trailer/(\d+)', str(status))
                     if match:
                         trailer_id = match.group(1)
-                        subject_info_from_trailer = get_subject_info_from_trailer(trailer_id, cookie)
-                        
-                        if subject_info_from_trailer:
-                            subject_id = subject_info_from_trailer['id']
-                            if subject_id:
-                                # 获取完整电影信息
-                                subject_info = get_subject_details(subject_id, cookie)
+                        if early_check:
+                            # 仅获取基本信息以检查ID
+                            subject_info_from_trailer = get_subject_info_from_trailer(trailer_id, cookie)
+                            if subject_info_from_trailer:
+                                return {"id": subject_info_from_trailer['id'], "title": subject_info_from_trailer['title']}
+                        else:
+                            subject_info_from_trailer = get_subject_info_from_trailer(trailer_id, cookie)
+                            if subject_info_from_trailer:
+                                subject_id = subject_info_from_trailer['id']
+                                if subject_id:
+                                    # 获取完整电影信息
+                                    subject_info = get_subject_details(subject_id, cookie)
         
         # 查找纯文本形式的链接
-        if not subject_info:
+        if not subject_info and not (early_check and subject_id):
             links = status.find_all('a', href=True)
             for link in links:
                 url = link['href']
@@ -519,7 +529,9 @@ def process_status(status, cookie):
                 # 处理豆瓣链接
                 if 'movie.douban.com/subject/' in url:
                     subject_id = extract_subject_id(url)
-                    if subject_id:
+                    if subject_id and early_check:
+                        return {"id": subject_id, "title": link.text.strip()}
+                    elif subject_id:
                         # 获取完整电影信息
                         subject_info = get_subject_details(subject_id, cookie)
                         break
@@ -528,16 +540,21 @@ def process_status(status, cookie):
                 elif 'movie.douban.com/trailer/' in url:
                     trailer_id = extract_trailer_id(url)
                     if trailer_id:
-                        subject_info_from_trailer = get_subject_info_from_trailer(trailer_id, cookie)
-                        if subject_info_from_trailer:
-                            subject_id = subject_info_from_trailer['id']
-                            if subject_id:
-                                # 获取完整电影信息
-                                subject_info = get_subject_details(subject_id, cookie)
-                                break
+                        if early_check:
+                            subject_info_from_trailer = get_subject_info_from_trailer(trailer_id, cookie)
+                            if subject_info_from_trailer:
+                                return {"id": subject_info_from_trailer['id'], "title": subject_info_from_trailer['title']}
+                        else:
+                            subject_info_from_trailer = get_subject_info_from_trailer(trailer_id, cookie)
+                            if subject_info_from_trailer:
+                                subject_id = subject_info_from_trailer['id']
+                                if subject_id:
+                                    # 获取完整电影信息
+                                    subject_info = get_subject_details(subject_id, cookie)
+                                    break
                 
                 # 处理短链接（douc.cc）
-                elif 'douc.cc' in url:
+                elif 'douc.cc' in url and not early_check:  # 早期检查跳过短链接处理
                     print(f"发现短链接: {url}")
                     actual_url = get_redirect_url(url, headers)
                     print(f"短链接重定向到: {actual_url}")
@@ -562,6 +579,9 @@ def process_status(status, cookie):
                                         # 获取完整电影信息
                                         subject_info = get_subject_details(subject_id, cookie)
                                         break
+        
+        if early_check and subject_id:
+            return {"id": subject_id, "title": "未知标题"}
         
         if subject_info and subject_id:
             # 获取发布日期
@@ -670,39 +690,43 @@ def parse_status_html(html_content, user_id, all_data, cookie):
     
     for index, status in enumerate(status_items, 1):
         try:
-            # 提取电影/剧集信息
-            subject = process_status(status, cookie)
+            # 先进行快速检查，只提取条目ID和简单标题
+            subject_basic = process_status(status, cookie, early_check=True)
             
-            if subject and subject['id']:
+            if subject_basic and subject_basic['id']:
                 # 检查是否重复
-                if is_duplicate(subject['id'], user_id, all_data):
-                    print(f"\n条目已存在，跳过: {subject['title']}")
-                    continue
+                if is_duplicate(subject_basic['id'], user_id, all_data):
+                    print(f"\n条目已存在，跳过: {subject_basic['title']}")
+                    continue  # 跳过下面的处理，直接进入下一次循环，不添加任何延迟
                 
-                print(f"\n处理新条目: {subject['title']}")
-                new_items += 1
+                # 条目不重复，获取完整信息
+                subject = process_status(status, cookie)
                 
-                # 设置notified为False，表示这是一个新条目需要通知
-                subject['notified'] = False
-                
-                # 根据类型添加到对应列表
-                if subject["type"] == "movie":
-                    movies.append(subject)
-                    print(f"已添加到电影列表: {subject['title']}")
-                else:
-                    tv_shows.append(subject)
-                    print(f"已添加到电视剧列表: {subject['title']}")
-                
-                # 实时保存数据
-                all_data[user_id] = {'movies': movies, 'tv_shows': tv_shows}
-                save_all_status_data(all_data)
-                print("数据已保存")
-            
-            # 只在处理新条目时添加延迟
-            if index < total_items:
-                delay = random.uniform(3, 7)
-                print(f"等待 {delay:.1f} 秒后继续...")
-                time.sleep(delay)
+                if subject and subject['id']:
+                    print(f"\n处理新条目: {subject['title']}")
+                    new_items += 1
+                    
+                    # 设置notified为False，表示这是一个新条目需要通知
+                    subject['notified'] = False
+                    
+                    # 根据类型添加到对应列表
+                    if subject["type"] == "movie":
+                        movies.append(subject)
+                        print(f"已添加到电影列表: {subject['title']}")
+                    else:
+                        tv_shows.append(subject)
+                        print(f"已添加到电视剧列表: {subject['title']}")
+                    
+                    # 实时保存数据
+                    all_data[user_id] = {'movies': movies, 'tv_shows': tv_shows}
+                    save_all_status_data(all_data)
+                    print("数据已保存")
+                    
+                    # 只在成功处理新条目后添加延迟
+                    if index < total_items:
+                        delay = random.uniform(3, 7)
+                        print(f"等待 {delay:.1f} 秒后继续...")
+                        time.sleep(delay)
                 
         except Exception as e:
             print(f"处理广播条目时出错: {e}")
@@ -745,6 +769,33 @@ def save_url_cache():
         print(f"已保存 {len(URL_CACHE)} 条URL缓存")
     except Exception as e:
         print(f"保存URL缓存失败: {e}")
+
+def fetch_user_status(user_id, cookie, pages=1):
+    """获取用户广播状态并处理"""
+    try:
+        # 加载现有数据
+        all_data = load_all_status_data()
+        
+        # 获取广播HTML内容
+        html_content = get_douban_status_html(user_id, cookie, pages)
+        
+        if not html_content:
+            print(f"未能获取用户 {user_id} 的广播内容")
+            return False
+            
+        # 解析HTML并提取电影/剧集
+        result = parse_status_html(html_content, user_id, all_data, cookie)
+        
+        # 更新用户数据
+        all_data[user_id] = result
+        save_all_status_data(all_data)
+        
+        # 检查是否有新内容
+        return result.get('new_items_count', 0) > 0
+        
+    except Exception as e:
+        print(f"获取用户 {user_id} 广播状态时出错: {e}")
+        return False
 
 def main():
     try:
