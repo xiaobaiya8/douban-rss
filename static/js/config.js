@@ -369,6 +369,14 @@ function saveConfig(successCallback) {
     const telegram_proxy_type = document.getElementById('telegram_proxy_type')?.value || 'http';
     const telegram_proxy_url = document.getElementById('telegram_proxy_url')?.value || '';
     
+    // 获取企业微信配置
+    const wecom_enabled = document.getElementById('wecom_enabled').checked;
+    const wecom_corpid = document.getElementById('wecom_corpid').value;
+    const wecom_corpsecret = document.getElementById('wecom_corpsecret').value;
+    const wecom_agentid = document.getElementById('wecom_agentid').value;
+    const wecom_touser = document.getElementById('wecom_touser').value || '@all';
+    const wecom_notify_mode = document.querySelector('input[name="wecom_notify_mode"]:checked')?.value || 'always';
+    
     // 构建详细的用户数据
     const usersData = JSON.stringify(users);
     
@@ -404,6 +412,14 @@ function saveConfig(successCallback) {
     formData.append('telegram_proxy_enabled', telegram_proxy_enabled);
     formData.append('telegram_proxy_type', telegram_proxy_type);
     formData.append('telegram_proxy_url', telegram_proxy_url);
+    
+    // 添加企业微信配置
+    formData.append('wecom_enabled', wecom_enabled);
+    formData.append('wecom_corpid', wecom_corpid);
+    formData.append('wecom_corpsecret', wecom_corpsecret);
+    formData.append('wecom_agentid', wecom_agentid);
+    formData.append('wecom_touser', wecom_touser);
+    formData.append('wecom_notify_mode', wecom_notify_mode);
     
     // 发送请求
     fetch('/save_config', {
@@ -1139,6 +1155,58 @@ function showDoulistIdGuide() {
     modal.style.display = 'block';
 }
 
+// 切换通知方式
+function switchNotifyMethod(method) {
+    // 切换按钮状态
+    const buttons = document.querySelectorAll('.method-button');
+    buttons.forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    const activeButton = document.querySelector(`.method-button[onclick*="${method}"]`);
+    if (activeButton) {
+        activeButton.classList.add('active');
+    }
+    
+    // 切换显示区域
+    const sections = document.querySelectorAll('.notify-section');
+    sections.forEach(section => {
+        section.classList.remove('active');
+    });
+    
+    const activeSection = document.getElementById(`${method}-notify-config`);
+    if (activeSection) {
+        activeSection.classList.add('active');
+    }
+    
+    // 更新通知方式启用状态
+    if (method === 'telegram') {
+        // 启用Telegram，禁用企业微信
+        document.getElementById('wecom_enabled').checked = false;
+        updateWecomSettings();
+        saveConfig();
+    } else if (method === 'wecom') {
+        // 启用企业微信，禁用Telegram
+        document.getElementById('telegram_enabled').checked = false;
+        updateTelegramSettings();
+        saveConfig();
+    }
+}
+
+// 处理企业微信设置的显示/隐藏
+function updateWecomSettings() {
+    const enabled = document.getElementById('wecom_enabled').checked;
+    const settingsDiv = document.getElementById('wecomSettings');
+    
+    if (settingsDiv) {
+        if (enabled) {
+            settingsDiv.classList.add('show');
+        } else {
+            settingsDiv.classList.remove('show');
+        }
+    }
+}
+
 // 初始化页面
 document.addEventListener('DOMContentLoaded', function() {
     // 初始化主题
@@ -1221,6 +1289,14 @@ document.addEventListener('DOMContentLoaded', function() {
         
         telegramEnabled.addEventListener('change', function() {
             updateTelegramSettings();
+            
+            // 如果启用Telegram，切换到Telegram界面并禁用企业微信
+            if (this.checked) {
+                document.getElementById('wecom_enabled').checked = false;
+                updateWecomSettings();
+                switchNotifyMethod('telegram');
+            }
+            
             saveConfig(function() {
                 showToast('Telegram 配置已更新');
             });
@@ -1414,4 +1490,51 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 初始化工具提示
     initTooltips();
+    
+    // 处理企业微信设置
+    const wecomEnabled = document.getElementById('wecom_enabled');
+    if (wecomEnabled) {
+        updateWecomSettings();
+        
+        wecomEnabled.addEventListener('change', function() {
+            updateWecomSettings();
+            
+            // 如果启用企业微信，切换到企业微信界面并禁用Telegram
+            if (this.checked) {
+                document.getElementById('telegram_enabled').checked = false;
+                updateTelegramSettings();
+                switchNotifyMethod('wecom');
+            }
+            
+            saveConfig(function() {
+                showToast('企业微信配置已更新');
+            });
+        });
+    }
+    
+    // 企业微信配置字段自动保存
+    const wecomFields = [
+        'wecom_corpid', 
+        'wecom_corpsecret', 
+        'wecom_agentid',
+        'wecom_touser'
+    ];
+    
+    wecomFields.forEach(field => {
+        const element = document.getElementById(field);
+        if (element) {
+            element.addEventListener('input', debounce(function() {
+                saveConfig();
+            }, 1000));
+        }
+    });
+    
+    // 处理企业微信通知模式选择
+    document.querySelectorAll('input[name="wecom_notify_mode"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            saveConfig(function() {
+                showToast('通知模式已更新');
+            });
+        });
+    });
 }); 

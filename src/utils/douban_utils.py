@@ -16,6 +16,7 @@ __all__ = [
     'get_api_data',
     'parse_api_item',
     'send_telegram_message',
+    'send_wecom_message',
     'make_douban_headers',
     'load_json_data',
     'save_json_data'
@@ -357,6 +358,95 @@ def send_telegram_message(message, config, has_new_content=False):
         print(f"发送 Telegram 消息出错: {e}")
     except Exception as e:
         print(f"发送 Telegram 消息时发生未知错误: {e}")
+
+def send_wecom_message(message, config, has_new_content=False):
+    """发送企业微信消息"""
+    wecom_config = config.get('wecom', {})
+    if not wecom_config.get('enabled'):
+        return
+    
+    corpid = wecom_config.get('corpid')
+    corpsecret = wecom_config.get('corpsecret')
+    agentid = wecom_config.get('agentid')
+    touser = wecom_config.get('touser', '@all')
+    notify_mode = wecom_config.get('notify_mode', 'always')
+    
+    # 检查是否应该发送消息（基于通知模式）
+    if notify_mode == 'new_only' and not has_new_content:
+        print("没有新内容，根据通知设置跳过发送企业微信消息")
+        return
+    
+    if not corpid or not corpsecret or not agentid:
+        print("企业微信配置无效，跳过发送消息")
+        return
+    
+    try:
+        # 第一步：获取访问令牌
+        token_url = f"https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid={corpid}&corpsecret={corpsecret}"
+        token_response = requests.get(token_url, timeout=10)
+        token_data = token_response.json()
+        
+        if token_data.get('errcode') != 0:
+            print(f"获取企业微信访问令牌失败: {token_data.get('errmsg')}")
+            return
+            
+        access_token = token_data.get('access_token')
+        
+        # 第二步：发送消息
+        send_url = f"https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={access_token}"
+        
+        # 企业微信消息格式转换：将HTML格式转为纯文本格式
+        # 1. 替换特殊HTML标签为企业微信支持的格式
+        clean_message = message
+        
+        # 处理<b>和</b>标签 - 加粗用星号代替
+        clean_message = re.sub(r'<b>(.*?)</b>', r'*\1*', clean_message)
+        
+        # 处理<i>和</i>标签 - 使用下划线表示
+        clean_message = re.sub(r'<i>(.*?)</i>', r'_\1_', clean_message)
+        
+        # 处理<a>标签 - 转为纯文本链接格式
+        clean_message = re.sub(r'<a href=[\'"]([^\'"]*)[\'"]>(.*?)</a>', r'\2 [\1]', clean_message)
+        
+        # 处理换行
+        clean_message = clean_message.replace('<br>', '\n').replace('<br/>', '\n').replace('<br />', '\n')
+        
+        # 处理特殊符号
+        clean_message = clean_message.replace('&lt;', '<').replace('&gt;', '>').replace('&amp;', '&')
+        clean_message = clean_message.replace('&quot;', '"').replace('&apos;', "'")
+        
+        # 处理列表项（通常HTML使用<li>标签）
+        clean_message = re.sub(r'<li>(.*?)</li>', r'• \1', clean_message)
+        
+        # 移除剩余的HTML标签
+        clean_message = re.sub(r'<[^>]+>', '', clean_message)
+        
+        # 处理特殊emoji/符号（保留它们）
+        # 🎬 ⚠️ 📊 等符号应该保留
+        
+        send_data = {
+            "touser": touser,
+            "msgtype": "text",
+            "agentid": agentid,
+            "text": {
+                "content": clean_message
+            }
+        }
+        
+        send_response = requests.post(send_url, json=send_data, timeout=10)
+        send_result = send_response.json()
+        
+        if send_result.get('errcode') == 0:
+            print("企业微信消息发送成功")
+        else:
+            print(f"发送企业微信消息失败: {send_result.get('errmsg')}")
+            
+    except requests.exceptions.Timeout:
+        print("发送企业微信消息超时")
+    except requests.exceptions.RequestException as e:
+        print(f"发送企业微信消息出错: {e}")
+    except Exception as e:
+        print(f"发送企业微信消息时发生未知错误: {e}")
 
 def make_douban_headers(cookie):
     """生成带有cookie的请求头"""

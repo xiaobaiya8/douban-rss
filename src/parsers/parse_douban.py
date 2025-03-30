@@ -5,8 +5,9 @@ import time
 import os
 import re
 import random
+import traceback
 # 导入豆瓣工具模块
-from src.utils.douban_utils import extract_subject_id, load_config, check_cookie_valid, send_telegram_message, make_douban_headers, load_json_data, save_json_data
+from src.utils.douban_utils import extract_subject_id, load_config, check_cookie_valid, send_telegram_message, send_wecom_message, make_douban_headers, load_json_data, save_json_data
 
 # 获取配置目录
 CONFIG_DIR = os.getenv('CONFIG_DIR', 'config')
@@ -414,12 +415,14 @@ def main():
             message = "❌ Cookie 未配置，请先配置 Cookie"
             print(message)
             send_telegram_message(message, config, False)
+            send_wecom_message(message, config, False)
             return
             
         if not check_cookie_valid(cookie):
             message = "❌ Cookie 已失效，请更新 Cookie"
             print(message)
             send_telegram_message(message, config, False)
+            send_wecom_message(message, config, False)
             return
         
         print("开始获取豆瓣用户数据...")
@@ -457,7 +460,7 @@ def main():
         
         # 构建消息内容，但根据情况决定是否发送
         # 无论是否有更新，都构建消息
-        message = "🎬 <b>豆瓣电影/剧集更新提醒</b>\n\n"
+        message = "🎬 *豆瓣电影/剧集更新提醒*\n\n"
         
         # 重新加载所有数据，确保获取最新的数据
         all_data = load_all_data()
@@ -517,7 +520,7 @@ def main():
                     
                     for source, items in items_by_source.items():
                         if items:
-                            message += f"• <b>{source_names.get(source, '未知')}</b>:\n"
+                            message += f"• *{source_names.get(source, '未知')}*:\n"
                             for item in items:
                                 # 获取年份信息
                                 year = item.get('year', '')
@@ -544,8 +547,9 @@ def main():
             message += f"• {total_movies} 部电影\n"
             message += f"• {total_tv_shows} 部剧集\n"
         
-        # 发送 Telegram 通知
+        # 发送通知
         send_telegram_message(message, config, has_unnotified_items)
+        send_wecom_message(message, config, has_unnotified_items)
         
         print("数据获取完成！")
         
@@ -553,6 +557,7 @@ def main():
         error_message = f"❌ 获取豆瓣数据时出错: {str(e)}"
         print(error_message)
         send_telegram_message(error_message, config, False)
+        send_wecom_message(error_message, config, False)
     finally:
         # 无论成功还是失败，都清理临时文件
         cleanup_temp_files()

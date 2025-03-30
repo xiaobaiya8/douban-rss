@@ -6,7 +6,7 @@ import os
 import re
 import random
 # 导入豆瓣工具模块
-from src.utils.douban_utils import extract_subject_id, load_config, check_cookie_valid, send_telegram_message, make_douban_headers, get_api_data, parse_api_item, load_json_data, save_json_data
+from src.utils.douban_utils import extract_subject_id, load_config, check_cookie_valid, send_telegram_message, send_wecom_message, make_douban_headers, get_api_data, parse_api_item, load_json_data, save_json_data
 
 # 获取配置目录
 CONFIG_DIR = os.getenv('CONFIG_DIR', 'config')
@@ -170,10 +170,15 @@ def save_hot_data(data):
     save_json_data(data, HOT_MOVIES_FILE)
 
 def send_telegram_message(message, config, has_new_content=False):
-    """发送 Telegram 消息"""
-    # 直接调用导入的函数，而不是自己
+    """发送Telegram消息，这是一个转发函数"""
+    # 使用工具模块中的函数
     from src.utils.douban_utils import send_telegram_message as utils_send_telegram_message
     utils_send_telegram_message(message, config, has_new_content)
+    
+def send_wecom_message(message, config, has_new_content=False):
+    """发送企业微信消息，这是一个转发函数"""
+    from src.utils.douban_utils import send_wecom_message as utils_send_wecom_message
+    utils_send_wecom_message(message, config, has_new_content)
 
 def check_cookie_valid(cookie):
     """检查 cookie 是否有效"""
@@ -195,12 +200,14 @@ def main():
             message = "❌ Cookie 未配置，请先配置 Cookie"
             print(message)
             send_telegram_message(message, config, False)
+            send_wecom_message(message, config, False)
             return
             
         if not check_cookie_valid(cookie):
             message = "❌ Cookie 已失效，请更新 Cookie"
             print(message)
             send_telegram_message(message, config, False)
+            send_wecom_message(message, config, False)
             return
         
         print("\n开始获取豆瓣热门数据...")
@@ -236,7 +243,7 @@ def main():
         
         # 生成通知消息
         message = (
-            f"🎬 <b>豆瓣热门数据更新完成</b>\n\n"
+            f"🎬 *豆瓣热门数据更新完成*\n\n"
         )
         
         # 根据实际新增数量展示消息
@@ -301,10 +308,9 @@ def main():
                 tv_link = tv.get('url', f"https://movie.douban.com/subject/{tv.get('id', '')}/")
                 message += f"{i}. <a href='{tv_link}'>{tv['title']}</a> - ⭐{tv['rating']}\n"
         
-        # 发送 Telegram 通知
-        # 根据实际是否有新增条目决定has_new_content参数
-        has_new_content = new_movies_count > 0 or new_tv_shows_count > 0
-        send_telegram_message(message, config, has_new_content)
+        # 发送通知
+        send_telegram_message(message, config, has_new_content=new_movies_count > 0 or new_tv_shows_count > 0)
+        send_wecom_message(message, config, has_new_content=new_movies_count > 0 or new_tv_shows_count > 0)
         
         print(f"\n数据获取完成！总计 {movies_count} 部热门电影和 {tv_shows_count} 部热门电视剧")
         print(f"本次新增: {new_movies_count} 部热门电影, {new_tv_shows_count} 部热门剧集")
@@ -313,6 +319,10 @@ def main():
         error_message = f"❌ 获取豆瓣热门数据时出错: {str(e)}"
         print(error_message)
         send_telegram_message(error_message, config, False)
+        send_wecom_message(error_message, config, False)
+    finally:
+        # 无论成功还是失败，都清理临时文件
+        cleanup_temp_files()
 
 if __name__ == "__main__":
     main() 

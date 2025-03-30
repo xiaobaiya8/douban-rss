@@ -1292,4 +1292,104 @@ input[type="number"] {
     .user-monitor-types {
         justify-content: space-between;
     }
+}
+
+/* 通知方式选择器 */
+.notification-method-selector {
+    margin-bottom: 15px;
+}
+
+.method-buttons {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.method-button {
+    padding: 8px 15px;
+    border-radius: 5px;
+    border: 1px solid var(--border-color);
+    background-color: var(--light-color);
+    color: var(--text-color);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.method-button i {
+    font-size: 1.1em;
+}
+
+.method-button.active {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+/* 通知部分的通用样式 */
+.notify-section {
+    display: none;
+}
+
+.notify-section.active {
+    display: block;
+}
+
+/* 企业微信样式 */
+.wecom-config {
+    margin-top: 10px;
+    padding: 15px;
+    background-color: rgba(0,0,0,0.03);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.wecom-config:hover {
+    background-color: rgba(0,0,0,0.05);
+}
+
+#wecomSettings {
+    margin-top: 15px;
+    padding-left: 10px;
+    border-left: 3px solid var(--primary-color);
+    display: none;
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+#wecomSettings.show {
+    display: block;
+    opacity: 1;
+}
+
+.wecom-help {
+    background-color: rgba(0,0,0,0.03);
+    padding: 12px;
+    border-radius: 5px;
+    display: flex;
+    gap: 10px;
+}
+
+.wecom-help i {
+    font-size: 1.2em;
+    color: var(--primary-color);
+}
+
+.help-content {
+    font-size: 0.9em;
+}
+
+.help-content p {
+    margin: 5px 0;
+}
+
+.help-content a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.help-content a:hover {
+    text-decoration: underline;
 } 

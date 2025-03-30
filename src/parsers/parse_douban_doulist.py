@@ -5,8 +5,9 @@ import time
 import os
 import re
 import random
+import traceback
 # 导入豆瓣工具模块
-from src.utils.douban_utils import extract_subject_id, load_config, check_cookie_valid, send_telegram_message, make_douban_headers, load_json_data, save_json_data, get_subject_info
+from src.utils.douban_utils import extract_subject_id, load_config, check_cookie_valid, send_telegram_message, send_wecom_message, make_douban_headers, load_json_data, save_json_data, get_subject_info
 
 # 获取配置目录
 CONFIG_DIR = os.getenv('CONFIG_DIR', 'config')
@@ -444,12 +445,14 @@ def main():
             message = "❌ Cookie 未配置，请先配置 Cookie"
             print(message)
             send_telegram_message(message, config, False)
+            send_wecom_message(message, config, False)
             return
             
         if not check_cookie_valid(cookie):
             message = "❌ Cookie 已失效，请更新 Cookie"
             print(message)
             send_telegram_message(message, config, False)
+            send_wecom_message(message, config, False)
             return
         
         print("\n======= 开始豆瓣片单抓取任务 =======")
@@ -514,7 +517,7 @@ def main():
         # 构建通知消息
         if any_updates:
             # 有更新时的消息
-            message = "📋 <b>豆瓣片单更新提醒</b>\n\n"
+            message = "📋 *豆瓣片单更新提醒*\n\n"
             
             # 加载最新数据
             print("\n正在构建通知消息...")
@@ -527,7 +530,7 @@ def main():
                 list_title = list_info.get("title", f"豆列 {doulist_id}")
                 list_url = list_info.get("url", f"https://www.douban.com/doulist/{doulist_id}/?start=0&sort=time&playable=0&sub_type=")
                 
-                message += f"<b><a href='{list_url}'>{list_title}</a></b> 新增 {info['count']} 部作品:\n"
+                message += f"*<a href='{list_url}'>{list_title}</a>* 新增 {info['count']} 部作品:\n"
                 
                 # 获取未通知的条目
                 new_items = [item for item in list_data.get("items", []) if not item.get("notified", True)][:100]  # 最多显示100个
@@ -556,6 +559,7 @@ def main():
             print("发送通知消息...")
             try:
                 send_telegram_message(message, config, True)
+                send_wecom_message(message, config, True)
                 print("通知消息发送成功")
             except Exception as e:
                 print(f"发送通知消息失败: {e}")
@@ -565,23 +569,29 @@ def main():
             print("\n片单数据更新完成！没有新内容")
             
             # 可选：发送无更新通知
-            if config.get('telegram', {}).get('notify_mode') != 'new_only':
-                message = "📋 <b>豆瓣片单更新提醒</b>\n\n"
+            # 检查是否有任何通知渠道的notify_mode为always（不是new_only）
+            telegram_always_notify = config.get('telegram', {}).get('notify_mode') != 'new_only'
+            wecom_always_notify = config.get('wecom', {}).get('notify_mode') != 'new_only'
+            
+            if telegram_always_notify or wecom_always_notify:
+                message = "📋 *豆瓣片单更新提醒*\n\n"
                 message += "⚠️ 本次更新没有发现新的内容。\n\n"
                 message += f"更新时间: {time.strftime('%Y-%m-%d %H:%M:%S')}\n"
                 
                 try:
                     send_telegram_message(message, config, False)
+                    send_wecom_message(message, config, False)
                     print("通知消息发送成功")
                 except Exception as e:
                     print(f"发送通知消息失败: {e}")
     
     except Exception as e:
+        traceback.print_exc()
         error_message = f"❌ 获取豆瓣片单数据时出错: {str(e)}"
         print(error_message)
         try:
-            config = load_config()
             send_telegram_message(error_message, config, False)
+            send_wecom_message(error_message, config, False)
         except Exception as send_err:
             print(f"发送错误通知失败: {send_err}")
     

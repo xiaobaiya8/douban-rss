@@ -79,64 +79,146 @@
             </div>
             
             <div class="form-group">
-                <label>Telegram 通知</label>
-                <div class="telegram-config">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="telegram_enabled" name="telegram_enabled" 
-                               {{ 'checked' if config.get('telegram', {}).get('enabled') else '' }}>
-                        <span><i class="bi bi-bell"></i> 启用 Telegram 通知</span>
-                    </label>
-                    
-                    <div class="telegram-settings" id="telegramSettings">
-                        <div class="input-group">
-                            <label>Bot Token</label>
-                            <input type="text" id="telegram_bot_token" name="telegram_bot_token" 
-                                   value="{{ config.get('telegram', {}).get('bot_token', '') }}"
-                                   placeholder="输入你的 Bot Token">
-                        </div>
-                        <div class="input-group">
-                            <label>Chat ID</label>
-                            <input type="text" id="telegram_chat_id" name="telegram_chat_id"
-                                   value="{{ config.get('telegram', {}).get('chat_id', '') }}"
-                                   placeholder="输入你的 Chat ID">
-                        </div>
-                        <div class="input-group">
-                            <label>通知频率</label>
-                            <div class="notification-options">
-                                <label class="radio-label">
-                                    <input type="radio" name="telegram_notify_mode" value="new_only" 
-                                           {{ 'checked' if config.get('telegram', {}).get('notify_mode') == 'new_only' else '' }}>
-                                    <span><i class="bi bi-filter-circle"></i> 仅当有新内容时通知</span>
+                <label>消息通知设置</label>
+                <div class="notification-method-selector">
+                    <div class="method-buttons">
+                        <button type="button" class="method-button {{ 'active' if not config.get('wecom', {}).get('enabled') else '' }}" 
+                                onclick="switchNotifyMethod('telegram')">
+                            <i class="bi bi-telegram"></i> Telegram
+                        </button>
+                        <button type="button" class="method-button {{ 'active' if config.get('wecom', {}).get('enabled') else '' }}" 
+                                onclick="switchNotifyMethod('wecom')">
+                            <i class="bi bi-wechat"></i> 企业微信
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Telegram 通知设置 -->
+                <div id="telegram-notify-config" class="notify-section {{ 'active' if not config.get('wecom', {}).get('enabled') else '' }}">
+                    <div class="telegram-config">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="telegram_enabled" name="telegram_enabled" 
+                                {{ 'checked' if config.get('telegram', {}).get('enabled') else '' }}>
+                            <span><i class="bi bi-bell"></i> 启用 Telegram 通知</span>
+                        </label>
+                        
+                        <div id="telegramSettings" class="{{ 'show' if config.get('telegram', {}).get('enabled') else '' }}">
+                            <div class="input-group">
+                                <label>Bot Token</label>
+                                <input type="text" id="telegram_bot_token" name="telegram_bot_token" 
+                                    value="{{ config.get('telegram', {}).get('bot_token', '') }}"
+                                    placeholder="输入你的 Bot Token">
+                            </div>
+                            <div class="input-group">
+                                <label>Chat ID</label>
+                                <input type="text" id="telegram_chat_id" name="telegram_chat_id"
+                                    value="{{ config.get('telegram', {}).get('chat_id', '') }}"
+                                    placeholder="输入你的 Chat ID">
+                            </div>
+                            <div class="input-group">
+                                <label>通知频率</label>
+                                <div class="notification-options">
+                                    <label class="radio-label">
+                                        <input type="radio" name="telegram_notify_mode" value="new_only" 
+                                            {{ 'checked' if config.get('telegram', {}).get('notify_mode') == 'new_only' else '' }}>
+                                        <span><i class="bi bi-filter-circle"></i> 仅当有新内容时通知</span>
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="telegram_notify_mode" value="always" 
+                                            {{ 'checked' if config.get('telegram', {}).get('notify_mode') != 'new_only' else '' }}>
+                                        <span><i class="bi bi-bell"></i> 每次更新都通知</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- 代理设置 -->
+                            <div class="input-group">
+                                <label>代理设置 <i class="bi bi-shield-lock"></i></label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="telegram_proxy_enabled" name="telegram_proxy_enabled" 
+                                        {{ 'checked' if config.get('telegram', {}).get('proxy', {}).get('enabled') else '' }}>
+                                    <span><i class="bi bi-globe"></i> 启用代理</span>
                                 </label>
-                                <label class="radio-label">
-                                    <input type="radio" name="telegram_notify_mode" value="always" 
-                                           {{ 'checked' if config.get('telegram', {}).get('notify_mode') != 'new_only' else '' }}>
-                                    <span><i class="bi bi-bell"></i> 每次更新都通知</span>
-                                </label>
+                                <div id="telegramProxySettings" class="{{ 'show' if config.get('telegram', {}).get('proxy', {}).get('enabled') else '' }}">
+                                    <div class="proxy-type">
+                                        <label>代理类型</label>
+                                        <select id="telegram_proxy_type" name="telegram_proxy_type">
+                                            <option value="http" {{ 'selected' if config.get('telegram', {}).get('proxy', {}).get('type') == 'http' else '' }}>HTTP</option>
+                                            <option value="socks5" {{ 'selected' if config.get('telegram', {}).get('proxy', {}).get('type') == 'socks5' else '' }}>SOCKS5</option>
+                                        </select>
+                                    </div>
+                                    <div class="proxy-url">
+                                        <label>代理地址</label>
+                                        <input type="text" id="telegram_proxy_url" name="telegram_proxy_url" 
+                                            value="{{ config.get('telegram', {}).get('proxy', {}).get('url', '') }}"
+                                            placeholder="例如: 127.0.0.1:7890">
+                                    </div>
+                                </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+                
+                <!-- 企业微信通知设置 -->
+                <div id="wecom-notify-config" class="notify-section {{ 'active' if config.get('wecom', {}).get('enabled') else '' }}">
+                    <div class="wecom-config">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="wecom_enabled" name="wecom_enabled" 
+                                {{ 'checked' if config.get('wecom', {}).get('enabled') else '' }}>
+                            <span><i class="bi bi-bell"></i> 启用企业微信通知</span>
+                        </label>
                         
-                        <!-- 代理设置 -->
-                        <div class="input-group">
-                            <label>代理设置 <i class="bi bi-shield-lock"></i></label>
-                            <label class="checkbox-label">
-                                <input type="checkbox" id="telegram_proxy_enabled" name="telegram_proxy_enabled" 
-                                       {{ 'checked' if config.get('telegram', {}).get('proxy', {}).get('enabled') else '' }}>
-                                <span><i class="bi bi-globe"></i> 启用代理</span>
-                            </label>
-                            <div id="telegramProxySettings" class="{{ 'show' if config.get('telegram', {}).get('proxy', {}).get('enabled') else '' }}">
-                                <div class="proxy-type">
-                                    <label>代理类型</label>
-                                    <select id="telegram_proxy_type" name="telegram_proxy_type">
-                                        <option value="http" {{ 'selected' if config.get('telegram', {}).get('proxy', {}).get('type') == 'http' else '' }}>HTTP</option>
-                                        <option value="socks5" {{ 'selected' if config.get('telegram', {}).get('proxy', {}).get('type') == 'socks5' else '' }}>SOCKS5</option>
-                                    </select>
+                        <div id="wecomSettings" class="{{ 'show' if config.get('wecom', {}).get('enabled') else '' }}">
+                            <div class="input-group">
+                                <label>企业ID (CorpID)</label>
+                                <input type="text" id="wecom_corpid" name="wecom_corpid" 
+                                    value="{{ config.get('wecom', {}).get('corpid', '') }}"
+                                    placeholder="输入企业微信的企业ID">
+                            </div>
+                            <div class="input-group">
+                                <label>应用密钥 (Secret)</label>
+                                <input type="text" id="wecom_corpsecret" name="wecom_corpsecret"
+                                    value="{{ config.get('wecom', {}).get('corpsecret', '') }}"
+                                    placeholder="输入应用的Secret">
+                            </div>
+                            <div class="input-group">
+                                <label>应用ID (AgentID)</label>
+                                <input type="text" id="wecom_agentid" name="wecom_agentid"
+                                    value="{{ config.get('wecom', {}).get('agentid', '') }}"
+                                    placeholder="输入应用的AgentID">
+                            </div>
+                            <div class="input-group">
+                                <label>接收人</label>
+                                <input type="text" id="wecom_touser" name="wecom_touser"
+                                    value="{{ config.get('wecom', {}).get('touser', '@all') }}"
+                                    placeholder="接收消息的用户，默认@all">
+                                <div class="help-text">可填写用户ID或部门ID，多个值用|分隔，或填写@all发送给所有人</div>
+                            </div>
+                            <div class="input-group">
+                                <label>通知频率</label>
+                                <div class="notification-options">
+                                    <label class="radio-label">
+                                        <input type="radio" name="wecom_notify_mode" value="new_only" 
+                                            {{ 'checked' if config.get('wecom', {}).get('notify_mode') == 'new_only' else '' }}>
+                                        <span><i class="bi bi-filter-circle"></i> 仅当有新内容时通知</span>
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="wecom_notify_mode" value="always" 
+                                            {{ 'checked' if config.get('wecom', {}).get('notify_mode') != 'new_only' else '' }}>
+                                        <span><i class="bi bi-bell"></i> 每次更新都通知</span>
+                                    </label>
                                 </div>
-                                <div class="proxy-url">
-                                    <label>代理地址</label>
-                                    <input type="text" id="telegram_proxy_url" name="telegram_proxy_url" 
-                                           value="{{ config.get('telegram', {}).get('proxy', {}).get('url', '') }}"
-                                           placeholder="例如: 127.0.0.1:7890">
+                            </div>
+                            <div class="input-group">
+                                <div class="wecom-help">
+                                    <i class="bi bi-info-circle"></i>
+                                    <div class="help-content">
+                                        <p><b>配置说明：</b></p>
+                                        <p>1. 登录<a href="https://work.weixin.qq.com/" target="_blank">企业微信管理后台</a></p>
+                                        <p>2. 在"我的企业"页面底部获取"企业ID"</p>
+                                        <p>3. 在"应用管理"页面创建自建应用，获取"AgentID"和"Secret"</p>
+                                        <p>4. 应用可见范围根据实际情况设置</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>

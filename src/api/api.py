@@ -482,6 +482,16 @@ def save_config_handler():
             }
         }
         
+        # 获取企业微信配置
+        wecom_config = {
+            "enabled": request.form.get('wecom_enabled') == 'true',
+            "corpid": request.form.get('wecom_corpid', ''),
+            "corpsecret": request.form.get('wecom_corpsecret', ''),
+            "agentid": request.form.get('wecom_agentid', ''),
+            "touser": request.form.get('wecom_touser', '@all'),
+            "notify_mode": request.form.get('wecom_notify_mode', 'always')
+        }
+        
         config = {
             # 保留原有密码
             "password": current_config.get('password'),
@@ -490,6 +500,7 @@ def save_config_handler():
             "statuses": statuses,
             "update_interval": int(request.form.get('update_interval', 3600)),
             "telegram": telegram_config,
+            "wecom": wecom_config,
             "monitors": monitors
         }
         

@@ -7,7 +7,7 @@ import re
 import random
 import logging
 # 导入豆瓣工具模块
-from src.utils.douban_utils import extract_subject_id, load_config, check_cookie_valid, send_telegram_message, make_douban_headers, load_json_data, save_json_data
+from src.utils.douban_utils import extract_subject_id, load_config, check_cookie_valid, send_telegram_message, send_wecom_message, make_douban_headers, load_json_data, save_json_data
 
 # 设置日志
 logging.basicConfig(
@@ -746,10 +746,15 @@ def parse_status_html(html_content, user_id, all_data, cookie):
     return result
 
 def send_telegram_message(message, config, has_new_content=False):
-    """发送 Telegram 消息"""
+    """发送Telegram消息，这是一个转发函数"""
     # 使用从utils导入的send_telegram_message函数，添加别名避免递归
     from src.utils.douban_utils import send_telegram_message as send_telegram_message_from_utils
     send_telegram_message_from_utils(message, config, has_new_content)
+
+def send_wecom_message(message, config, has_new_content=False):
+    """发送企业微信消息，这是一个转发函数"""
+    from src.utils.douban_utils import send_wecom_message as send_wecom_message_from_utils
+    send_wecom_message_from_utils(message, config, has_new_content)
 
 def cleanup_temp_files():
     """清理临时文件"""
@@ -810,13 +815,14 @@ def main():
             message = "❌ Cookie 未配置，请先配置 Cookie"
             print(message)
             send_telegram_message(message, config, False)
+            send_wecom_message(message, config, False)
             return
             
-        # 使用douban_utils检查cookie有效性
         if not check_cookie_valid(cookie):
             message = "❌ Cookie 已失效，请更新 Cookie"
             print(message)
             send_telegram_message(message, config, False)
+            send_wecom_message(message, config, False)
             return
         
         print("\n开始获取豆瓣广播数据...")
@@ -851,78 +857,94 @@ def main():
                 print(f"处理用户广播 {user_id} 时出错: {e}")
                 continue
         
-        # 构建消息内容
-        message = "📡 <b>豆瓣广播更新提醒</b>\n\n"
-        
-        # 重新加载所有数据，确保获取最新的数据
+        # 重新加载所有数据，用于生成统计信息
         all_data = load_all_status_data()
         
-        # 检查是否有未通知的条目
-        has_unnotified_items = False
+        # 统计总数和新增内容
+        total_movies = 0
+        total_tv_shows = 0
+        new_movies = []
+        new_tv_shows = []
+        
+        # 遍历所有用户数据，统计总数和查找未通知的新项目
         for user_id, user_data in all_data.items():
-            movies = user_data.get('movies', [])
-            tv_shows = user_data.get('tv_shows', [])
-            unnotified_items = [item for item in movies + tv_shows if not item.get('notified', False)]
-            if unnotified_items:
-                has_unnotified_items = True
-                break
+            # 统计总数
+            total_movies += len(user_data.get('movies', []))
+            total_tv_shows += len(user_data.get('tv_shows', []))
+            
+            # 查找未通知的项目
+            for movie in user_data.get('movies', []):
+                if not movie.get('notified', True):
+                    new_movies.append(movie)
+            
+            for tv in user_data.get('tv_shows', []):
+                if not tv.get('notified', True):
+                    new_tv_shows.append(tv)
         
-        if not has_unnotified_items:
+        # 新增数量
+        new_movies_count = len(new_movies)
+        new_tv_shows_count = len(new_tv_shows)
+        has_new_content = new_movies_count > 0 or new_tv_shows_count > 0
+        
+        # 构建通知消息
+        message = (
+            f"🎬 *豆瓣广播更新完成*\n\n"
+        )
+        
+        # 根据实际新增数量展示消息
+        if not has_new_content:
             # 没有新内容时的消息
-            message += "⚠️ 本次更新没有发现新的广播内容。\n\n"
-        
-        message += f"更新时间: {time.strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-        
-        if has_unnotified_items:
-            # 整理每个用户的未通知条目
-            for status in statuses:
-                user_id = status['id']
-                note = status.get('note', '')
-                user_data = all_data.get(user_id, {})
-                movies = user_data.get('movies', [])
-                tv_shows = user_data.get('tv_shows', [])
-                
-                # 获取未通知的条目
-                unnotified_items = [item for item in movies + tv_shows if not item.get('notified', False)]
-                
-                if unnotified_items:
-                    message += f"用户 {note or user_id} 广播新增:\n"
-                    
-                    for item in unnotified_items:
-                        # 标记为已通知
-                        item['notified'] = True
-                        
-                        # 使用主标题，添加链接
-                        url = item.get('url', f"https://movie.douban.com/subject/{item.get('id', '')}/")
-                        message += f"• <a href=\"{url}\">{item['title']}"
-                        if item.get('type') == 'movie':
-                            message += " [电影]"
-                        else:
-                            message += " [剧集]"
-                        message += "</a>\n"
-                        
-                        # 添加广播内容摘要
-                        if item.get('status_content'):
-                            content = item['status_content']
-                            if len(content) > 100:
-                                content = content[:97] + "..."
-                            message += f'  "{content}"\n'
-                    
-                    message += "\n"
-            
-            # 保存更新后的数据
-            save_all_status_data(all_data)
+            message += "⚠️ 本次更新没有发现新的内容。\n\n"
         else:
-            # 添加统计信息
-            total_movies = sum(len(user_data.get('movies', [])) for user_data in all_data.values())
-            total_tv_shows = sum(len(user_data.get('tv_shows', [])) for user_data in all_data.values())
-            
-            message += f"当前从广播追踪:\n"
-            message += f"• {total_movies} 部电影\n"
-            message += f"• {total_tv_shows} 部剧集\n"
+            message += f"📊 本次新增: {new_movies_count} 部电影, {new_tv_shows_count} 部剧集\n\n"
         
-        # 发送 Telegram 通知
-        send_telegram_message(message, config, has_unnotified_items)
+        # 更新时间和总计数
+        update_time = time.strftime('%Y-%m-%d %H:%M:%S')
+        message += (
+            f"更新时间: {update_time}\n"
+            f"总电影数: {total_movies} 部\n"
+            f"总剧集数: {total_tv_shows} 部\n\n"
+        )
+        
+        # 添加新更新的电影信息
+        if has_new_content:
+            if new_movies:
+                message += "*新增电影:*\n"
+                for movie in new_movies[:5]:  # 最多显示5部新电影
+                    movie_link = movie.get('url', f"https://movie.douban.com/subject/{movie.get('id', '')}/")
+                    rating = movie.get('rating', '')
+                    rating_text = f" - ⭐{rating}" if rating else ""
+                    message += f"• <a href='{movie_link}'>{movie['title']}</a>{rating_text}\n"
+                    movie['notified'] = True  # 标记为已通知
+                    
+                # 如果新电影超过5部，添加"等"字样
+                if len(new_movies) > 5:
+                    message += f"等 {len(new_movies)} 部新电影\n"
+                
+                message += "\n"
+            
+            # 如果有新增剧集
+            if new_tv_shows:
+                message += "*新增剧集:*\n"
+                for tv in new_tv_shows[:5]:  # 最多显示5部新剧集
+                    tv_link = tv.get('url', f"https://movie.douban.com/subject/{tv.get('id', '')}/")
+                    rating = tv.get('rating', '')
+                    rating_text = f" - ⭐{rating}" if rating else ""
+                    message += f"• <a href='{tv_link}'>{tv['title']}</a>{rating_text}\n"
+                    tv['notified'] = True  # 标记为已通知
+                    
+                # 如果新剧集超过5部，添加"等"字样
+                if len(new_tv_shows) > 5:
+                    message += f"等 {len(new_tv_shows)} 部新剧集\n"
+                
+                message += "\n"
+            
+            # 保存已标记的数据
+            save_all_status_data(all_data)
+        
+        # 发送通知消息
+        send_telegram_message(message, config, has_new_content)
+        send_wecom_message(message, config, has_new_content)
         
         print("\n广播数据获取完成！")
         
@@ -930,6 +952,7 @@ def main():
         error_message = f"❌ 获取豆瓣广播数据时出错: {str(e)}"
         print(error_message)
         send_telegram_message(error_message, config, False)
+        send_wecom_message(error_message, config, False)
     finally:
         # 保存URL缓存
         save_url_cache()
