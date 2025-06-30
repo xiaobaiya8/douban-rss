@@ -2,7 +2,7 @@
 
 A tool for monitoring Douban movies and TV series information and providing API interfaces, supporting automatic synchronization of user watchlists, broadcast lists, latest movies/TV series, popular movies/TV series, and hidden gems.
 
-> **Latest Update [v1.0.1.2]**: Optimized code structure, implemented modular design, improved stability. Fixed RSSHub interface issues. Enhanced broadcast subscription descriptions. Added support for monitoring "Want to Watch", "Watching", and "Watched" lists. For more details, please check the [Changelog](#changelog).
+> **Latest Update [v1.0.1.4]**: Added intelligent cache expiration mechanism, WeChat Work proxy support, and parallel multi-notification features. For more details, please check the [Changelog](#changelog).
 
 [中文版](https://github.com/xiaobaiya8/douban-rss/blob/main/README.md)
 
@@ -196,7 +196,13 @@ View the [complete changelog](CHANGELOG.md) for all project updates.
 
 ### Latest Version
 
-**[v1.0.1.2] - 2024-03-29**
+**[v1.0.1.4] - 2025-06-30**
+- Added intelligent cache expiration mechanism with 30-day auto-update for item information
+- Added WeChat Work proxy support and parallel multi-notification capabilities
+- Optimized cache management logic to prevent duplicate notifications from cache updates
+- Fixed user subscription page count functionality and interface layout issues
+
+**[v1.0.1.2] - 2025-03-29**
 - Code structure optimization: Organized code by functionality into different directories with modular design
 - Fixed RSSHub interface issues
 - Optimized API service startup process
