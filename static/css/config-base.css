@@ -424,9 +424,19 @@ input[type="number"] {
     color: var(--dark-color);
 }
 
-.user-note-input {
+.user-content {
+    display: flex;
+    align-items: center;
     flex-grow: 1;
-    margin: 0 10px;
+    margin-right: 10px;
+    gap: 10px;
+    flex-wrap: nowrap;
+}
+
+.user-note-input {
+    width: 150px;
+    min-width: 120px;
+    max-width: 200px;
     padding: 8px 10px;
     border: 1px solid transparent;
     border-radius: 4px;
@@ -434,6 +444,7 @@ input[type="number"] {
     color: var(--light-text);
     font-size: 14px;
     transition: var(--transition);
+    flex-shrink: 0;
 }
 
 .user-note-input:hover {
@@ -448,28 +459,82 @@ input[type="number"] {
     box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
 }
 
-.user-add {
+.user-monitor-types {
     display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 15px;
+    gap: 12px;
     align-items: center;
+    flex-shrink: 0;
 }
 
-.user-add:hover {
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-}
-
-.user-add input {
-    flex: 1;
-    padding: 10px;
+/* 调整页数输入框样式 */
+.user-pages-input {
+    width: 60px;
+    height: 32px;
+    padding: 5px 8px;
     border: 1px solid var(--border-color);
     border-radius: 4px;
+    margin-right: 5px;
     font-size: 14px;
+    background-color: var(--input-bg);
+    color: var(--text-color);
+    transition: all 0.3s;
+    text-align: center;
 }
 
-.user-add button {
+.input-with-label {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    margin-right: 10px;
+}
+
+.checkbox-label.small {
+    padding: 4px 8px;
+    font-size: 0.85em;
+    margin: 0;
     white-space: nowrap;
+    background-color: rgba(0, 0, 0, 0.03);
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.checkbox-label.small:hover {
+    background-color: rgba(0, 0, 0, 0.08);
+}
+
+.checkbox-label.small input[type="checkbox"] {
+    margin-right: 6px;
+    transform: scale(0.9);
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .user-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .user-note-input {
+        width: 100%;
+    }
+    
+    .user-monitor-types {
+        width: 100%;
+        justify-content: space-between;
+        gap: 8px;
+    }
+    
+    .checkbox-label.small {
+        flex: 1;
+        text-align: center;
+        justify-content: center;
+    }
+    
+    .input-with-label {
+        margin-right: 0;
+        margin-bottom: 5px;
+    }
 }
 
 /* 用户操作区域样式优化 */
@@ -494,6 +559,8 @@ input[type="number"] {
     cursor: pointer;
     transition: all 0.3s;
     text-decoration: none;
+    flex-shrink: 0;
+    margin-left: 8px;
 }
 
 .btn-view:hover {
@@ -1148,7 +1215,6 @@ input[type="number"] {
     
     .user-note-input {
         width: 100%;
-        margin: 5px 0;
     }
     
     .user-actions {
@@ -1161,38 +1227,9 @@ input[type="number"] {
         min-width: 120px;
     }
     
-    .status-pages-input {
-        width: 60px;
-    }
 }
 
-/* 广播页数输入框 */
-.status-pages-input {
-    width: 70px;
-    height: 32px;
-    padding: 5px 10px;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    margin-right: 5px;
-    font-size: 14px;
-    background-color: var(--input-bg);
-    color: var(--text-color);
-    transition: all 0.3s;
-}
-
-.status-pages-input:focus {
-    border-color: var(--primary-color);
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.25);
-}
-
-/* 带标签的输入框 */
-.input-with-label {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    max-width: 120px;
-}
+/* 带标签的输入框 - 已在前面定义 */
 
 .input-label {
     margin-left: 5px;
@@ -1263,35 +1300,6 @@ input[type="number"] {
     gap: 15px;
     margin: 10px 0;
     flex-wrap: wrap;
-}
-
-.user-content {
-    display: flex;
-    flex-direction: column;
-    flex-grow: 1;
-    margin-right: 10px;
-}
-
-.user-monitor-types {
-    display: flex;
-    gap: 15px;
-    margin-top: 8px;
-}
-
-.checkbox-label.small {
-    padding: 2px 0;
-    font-size: 0.9em;
-}
-
-@media (max-width: 768px) {
-    .monitor-options {
-        width: 100%;
-        justify-content: space-between;
-    }
-    
-    .user-monitor-types {
-        justify-content: space-between;
-    }
 }
 
 /* 通知方式选择器 */
@@ -1392,4 +1400,28 @@ input[type="number"] {
 
 .help-content a:hover {
     text-decoration: underline;
+}
+
+.user-add {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 15px;
+    align-items: center;
+}
+
+.user-add:hover {
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.user-add input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.user-add button {
+    white-space: nowrap;
 } 

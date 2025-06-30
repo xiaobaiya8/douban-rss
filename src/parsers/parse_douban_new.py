@@ -177,6 +177,19 @@ def check_cookie_valid(cookie):
     from src.utils.douban_utils import check_cookie_valid as utils_check_cookie_valid
     return utils_check_cookie_valid(cookie)
 
+def cleanup_temp_files():
+    """清理临时文件"""
+    try:
+        # 清理可能的临时文件
+        import glob
+        temp_files = glob.glob('douban_*.html') + glob.glob('*.tmp')
+        for file in temp_files:
+            if os.path.exists(file):
+                os.remove(file)
+                print(f"已删除临时文件: {file}")
+    except Exception as e:
+        print(f"清理临时文件时出错: {e}")
+
 def main():
     try:
         config = load_config()
@@ -246,32 +259,24 @@ def main():
             f"总剧集数: {tv_shows_count} 部\n\n"
         )
         
-        # 添加新更新的电影信息 - 只显示实际新增的电影
+        # 添加新更新的电影信息 - 显示所有实际新增的电影
         if has_updates and (len(new_movies) > 0 or len(new_tv_shows) > 0):
             if new_movies:
                 message += "*新增电影:*\n"
-                for movie in new_movies[:5]:  # 最多显示5部新电影
+                for movie in new_movies:  # 显示所有新电影，不限制数量
                     movie_link = movie.get('url', f"https://movie.douban.com/subject/{movie.get('id', '')}/")
                     message += f"• <a href='{movie_link}'>{movie['title']}</a> - ⭐{movie['rating']}\n"
                     movie['notified'] = True  # 标记为已通知
-                    
-                # 如果新电影超过5部，添加"等"字样
-                if len(new_movies) > 5:
-                    message += f"等 {len(new_movies)} 部新电影\n"
                 
                 message += "\n"
             
             # 如果有新增剧集
             if new_tv_shows:
                 message += "*新增剧集:*\n"
-                for tv in new_tv_shows[:5]:  # 最多显示5部新剧集
+                for tv in new_tv_shows:  # 显示所有新剧集，不限制数量
                     tv_link = tv.get('url', f"https://movie.douban.com/subject/{tv.get('id', '')}/")
                     message += f"• <a href='{tv_link}'>{tv['title']}</a> - ⭐{tv['rating']}\n"
                     tv['notified'] = True  # 标记为已通知
-                    
-                # 如果新剧集超过5部，添加"等"字样
-                if len(new_tv_shows) > 5:
-                    message += f"等 {len(new_tv_shows)} 部新剧集\n"
                 
                 message += "\n"
                 

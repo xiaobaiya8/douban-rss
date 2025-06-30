@@ -228,21 +228,25 @@ def is_duplicate(title, user_id, all_data):
             return True
     return False
 
-def get_douban_html(user_id, cookie, list_type='wish'):
+def get_douban_html(user_id, cookie, list_type='wish', page=1):
     """获取豆瓣HTML内容
     
     list_type: 列表类型，可选值：
     - wish: 想看
     - do: 在看
     - collect: 已看
+    page: 页码，默认为第1页
     """
+    # 计算起始位置：每页15个条目
+    start = (page - 1) * 15
+    
     # 根据列表类型确定URL
     if list_type == 'do':
-        url = f'https://movie.douban.com/people/{user_id}/do'
+        url = f'https://movie.douban.com/people/{user_id}/do?start={start}&sort=time&rating=all&mode=grid&type=all&filter=all'
     elif list_type == 'collect':
-        url = f'https://movie.douban.com/people/{user_id}/collect'
+        url = f'https://movie.douban.com/people/{user_id}/collect?start={start}&sort=time&rating=all&mode=grid&type=all&filter=all'
     else:  # 默认为wish
-        url = f'https://movie.douban.com/people/{user_id}/wish'
+        url = f'https://movie.douban.com/people/{user_id}/wish?start={start}&sort=time&rating=all&mode=grid&type=all&filter=all'
         
     headers = make_douban_headers(cookie)
     
@@ -257,6 +261,7 @@ def fetch_user_data(user_id, cookie, user_config=None):
     try:
         print(f"处理用户 {user_id} 的数据...")
         user_note = user_config.get('note', '') if user_config else ''
+        max_pages = user_config.get('pages', 1) if user_config else 1
         
         # 确定需要监控的列表类型
         list_types = []
@@ -274,24 +279,36 @@ def fetch_user_data(user_id, cookie, user_config=None):
         all_data = load_all_data()
         has_updates = False
         
-        print(f"用户 {user_note or user_id} 监控列表类型: {', '.join(list_types)}")
+        print(f"用户 {user_note or user_id} 监控列表类型: {', '.join(list_types)}，抓取 {max_pages} 页")
         
         for list_type in list_types:
             try:
-                # 获取HTML内容
+                print(f"获取 {list_type} 列表数据中...")
+                
+                # 获取所有页面的HTML内容
+                all_html_content = ""
+                for page in range(1, max_pages + 1):
+                    print(f"  获取第 {page}/{max_pages} 页...")
+                    
+                    html_content = get_douban_html(user_id, cookie, list_type, page)
+                    all_html_content += html_content
+                    
+                    # 如果不是最后一页，添加延迟
+                    if page < max_pages:
+                        delay = random.uniform(1, 3)
+                        print(f"  等待 {delay:.1f} 秒后获取下一页...")
+                        time.sleep(delay)
+                
+                # 保存合并后的HTML内容到文件但不输出提示
                 html_file = f'douban_{user_id}_{list_type}.html'
                 if os.path.exists(html_file):
                     os.remove(html_file)
                 
-                print(f"获取 {list_type} 列表数据中...")
-                html_content = get_douban_html(user_id, cookie, list_type)
-                
-                # 保存HTML内容到文件但不输出提示
                 with open(html_file, 'w', encoding='utf-8') as f:
-                    f.write(html_content)
+                    f.write(all_html_content)
                 
                 print(f"解析 {list_type} 列表数据中...")
-                user_data = generate_movies_json(html_content, user_id, all_data, cookie, list_type)
+                user_data = generate_movies_json(all_html_content, user_id, all_data, cookie, list_type)
                 
                 # 检查是否有更新
                 has_list_updates = user_data['new_items_count'] > 0

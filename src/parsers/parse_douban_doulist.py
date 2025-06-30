@@ -533,7 +533,7 @@ def main():
                 message += f"*<a href='{list_url}'>{list_title}</a>* 新增 {info['count']} 部作品:\n"
                 
                 # 获取未通知的条目
-                new_items = [item for item in list_data.get("items", []) if not item.get("notified", True)][:100]  # 最多显示100个
+                new_items = [item for item in list_data.get("items", []) if not item.get("notified", True)]  # 显示所有条目，不限制数量
                 
                 for item in new_items:
                     title = item.get("title", "")
@@ -544,10 +544,6 @@ def main():
                     
                     # 标记为已通知
                     item["notified"] = True
-                
-                # 如果新增超过100个，添加"等"字样
-                if info["count"] > 100:
-                    message += f"等 {info['count']} 部作品\n"
                     
                 message += "\n"
             

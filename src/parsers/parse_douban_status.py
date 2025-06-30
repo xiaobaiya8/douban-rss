@@ -910,32 +910,24 @@ def main():
         if has_new_content:
             if new_movies:
                 message += "*新增电影:*\n"
-                for movie in new_movies[:5]:  # 最多显示5部新电影
+                for movie in new_movies:  # 显示所有新电影，不限制数量
                     movie_link = movie.get('url', f"https://movie.douban.com/subject/{movie.get('id', '')}/")
                     rating = movie.get('rating', '')
                     rating_text = f" - ⭐{rating}" if rating else ""
                     message += f"• <a href='{movie_link}'>{movie['title']}</a>{rating_text}\n"
                     movie['notified'] = True  # 标记为已通知
-                    
-                # 如果新电影超过5部，添加"等"字样
-                if len(new_movies) > 5:
-                    message += f"等 {len(new_movies)} 部新电影\n"
                 
                 message += "\n"
             
             # 如果有新增剧集
             if new_tv_shows:
                 message += "*新增剧集:*\n"
-                for tv in new_tv_shows[:5]:  # 最多显示5部新剧集
+                for tv in new_tv_shows:  # 显示所有新剧集，不限制数量
                     tv_link = tv.get('url', f"https://movie.douban.com/subject/{tv.get('id', '')}/")
                     rating = tv.get('rating', '')
                     rating_text = f" - ⭐{rating}" if rating else ""
                     message += f"• <a href='{tv_link}'>{tv['title']}</a>{rating_text}\n"
                     tv['notified'] = True  # 标记为已通知
-                    
-                # 如果新剧集超过5部，添加"等"字样
-                if len(new_tv_shows) > 5:
-                    message += f"等 {len(new_tv_shows)} 部新剧集\n"
                 
                 message += "\n"
             

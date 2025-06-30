@@ -107,6 +107,15 @@ function renderUserList() {
                        value="${user.note || ''}" 
                        placeholder="添加备注" 
                        onchange="updateUserNote(${index}, this.value)">
+                <div class="input-with-label">
+                    <input type="number" 
+                           class="user-pages-input" 
+                           value="${user.pages || 1}" 
+                           min="1" 
+                           max="10"
+                           onchange="updateUserPages(${index}, this.value)">
+                    <span class="input-label">页</span>
+                </div>
                 <div class="user-monitor-types">
                     <label class="checkbox-label small">
                         <input type="checkbox" 
@@ -150,7 +159,7 @@ function renderStatusList() {
     statusList.innerHTML = statuses.map((status, index) => `
         <div class="user-item">
             <span class="user-id">${status.id || ''}</span>
-            <div class="user-actions">
+            <div class="user-content">
                 <input type="text" 
                        class="user-note-input" 
                        value="${status.note || ''}" 
@@ -158,7 +167,7 @@ function renderStatusList() {
                        onchange="updateStatusNote(${index}, this.value)">
                 <div class="input-with-label">
                     <input type="number" 
-                           class="status-pages-input" 
+                           class="user-pages-input" 
                            value="${status.pages || 1}" 
                            min="1" 
                            max="10"
@@ -168,12 +177,12 @@ function renderStatusList() {
                 <a href="https://www.douban.com/people/${status.id}/statuses" target="_blank" class="btn-view" title="查看广播">
                     <i class="bi bi-box-arrow-up-right"></i>
                 </a>
-                <button type="button" 
-                        class="btn-delete" 
-                        onclick="removeStatus(${index})">
-                        <i class="bi bi-trash"></i> 删除
-                </button>
             </div>
+            <button type="button" 
+                    class="btn-delete" 
+                    onclick="removeStatus(${index})">
+                    <i class="bi bi-trash"></i> 删除
+            </button>
         </div>
     `).join('');
 }
@@ -182,12 +191,14 @@ function renderStatusList() {
 function addUser() {
     const idInput = document.getElementById('newUserId');
     const noteInput = document.getElementById('newUserNote');
+    const pagesInput = document.getElementById('newUserPages');
     const wishInput = document.getElementById('newUserWish');
     const doInput = document.getElementById('newUserDo');
     const collectInput = document.getElementById('newUserCollect');
     
     const id = idInput.value.trim();
     const note = noteInput.value.trim();
+    const pages = parseInt(pagesInput.value) || 1;
     const monitor_wish = wishInput.checked;
     const monitor_do = doInput.checked;
     const monitor_collect = collectInput.checked;
@@ -202,6 +213,7 @@ function addUser() {
             users.push({ 
                 id, 
                 note, 
+                pages: Math.min(Math.max(pages, 1), 10),  // 1-10页范围
                 monitor_wish, 
                 monitor_do, 
                 monitor_collect 
@@ -210,6 +222,7 @@ function addUser() {
             renderUserList();
             idInput.value = '';
             noteInput.value = '';
+            pagesInput.value = '1';
             wishInput.checked = true;
             doInput.checked = false;
             collectInput.checked = false;
@@ -275,6 +288,20 @@ function updateUserMonitorType(index, type, checked) {
     saveConfig(() => {
         showToast('监控类型已更新');
     });
+}
+
+// 更新用户抓取页数
+function updateUserPages(index, pages) {
+    const pagesNum = parseInt(pages) || 1;
+    if (pagesNum >= 1 && pagesNum <= 10) {
+        users[index].pages = pagesNum;
+        saveConfig(() => {
+            showToast('用户抓取页数已更新');
+        });
+    } else {
+        showToast('用户抓取页数必须在1-10之间', 'error');
+        renderUserList(); // 恢复原值
+    }
 }
 
 // 添加新广播用户
@@ -980,46 +1007,37 @@ function renderDoulistList() {
     const doulistList = document.getElementById('doulistList');
     if (!doulistList) return;
     
-    doulistList.innerHTML = '';
-    
     if (doulists.length === 0) {
-        doulistList.innerHTML = '<div class="empty-list">未添加任何片单，请添加需要监控的片单</div>';
+        doulistList.innerHTML = '<div class="empty-state">没有添加任何片单，请添加需要监控的片单</div>';
         return;
     }
     
-    doulists.forEach((doulist, index) => {
-        const listItem = document.createElement('div');
-        listItem.className = 'user-item';
-        
-        const note = doulist.note || `片单 ${doulist.id}`;
-        
-        listItem.innerHTML = `
-            <div class="user-info">
-                <div class="user-id-container">
-                    <span class="user-id-label">ID:</span>
-                    <span class="user-id">${doulist.id}</span>
-                </div>
-                <div class="user-note-container">
-                    <input type="text" class="user-note" value="${note}" 
-                           placeholder="片单备注" title="编辑备注"
-                           onchange="updateDoulistNote(${index}, this.value)">
-                </div>
-                <div class="user-pages-container">
-                    <input type="number" class="user-pages" value="${doulist.pages || 5}" 
-                           min="1" max="20" title="抓取页数"
+    doulistList.innerHTML = doulists.map((doulist, index) => `
+        <div class="user-item">
+            <span class="user-id">${doulist.id}</span>
+            <div class="user-content">
+                <input type="text" 
+                       class="user-note-input" 
+                       value="${doulist.note || ''}" 
+                       placeholder="片单备注" 
+                       onchange="updateDoulistNote(${index}, this.value)">
+                <div class="input-with-label">
+                    <input type="number" 
+                           class="user-pages-input" 
+                           value="${doulist.pages || 5}" 
+                           min="1" 
+                           max="20"
                            onchange="updateDoulistPages(${index}, this.value)">
-                    <span class="pages-label">页</span>
+                    <span class="input-label">页</span>
                 </div>
             </div>
-            <div class="user-actions">
-                <button type="button" class="btn-remove" onclick="removeDoulist(${index})">
-                    <i class="bi bi-trash"></i>
-                </button>
-            </div>
-        `;
-        
-        doulistList.appendChild(listItem);
-    });
+            <button type="button" 
+                    class="btn-delete" 
+                    onclick="removeDoulist(${index})">
+                    <i class="bi bi-trash"></i> 删除
+            </button>
+        </div>
+    `).join('');
 }
 
 // 添加片单

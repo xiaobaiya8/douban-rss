@@ -264,34 +264,26 @@ def main():
             # 显示新增的电影
             if new_movies:
                 message += "<b>新增热门电影:</b>\n"
-                for movie in new_movies[:5]:  # 最多显示5部新电影
+                for movie in new_movies:  # 显示所有新电影，不限制数量
                     movie_link = movie.get('url', f"https://movie.douban.com/subject/{movie.get('id', '')}/")
                     message += f"• <a href='{movie_link}'>{movie['title']}</a> - ⭐{movie['rating']}\n"
                     movie['notified'] = True  # 标记为已通知
-                    
-                # 如果新电影超过5部，添加"等"字样
-                if len(new_movies) > 5:
-                    message += f"等 {len(new_movies)} 部新热门电影\n"
                 
                 message += "\n"
             
             # 显示新增的剧集
             if new_tv_shows:
                 message += "<b>新增热门剧集:</b>\n"
-                for tv in new_tv_shows[:5]:  # 最多显示5部新剧集
+                for tv in new_tv_shows:  # 显示所有新剧集，不限制数量
                     tv_link = tv.get('url', f"https://movie.douban.com/subject/{tv.get('id', '')}/")
                     message += f"• <a href='{tv_link}'>{tv['title']}</a> - ⭐{tv['rating']}\n"
                     tv['notified'] = True  # 标记为已通知
-                    
-                # 如果新剧集超过5部，添加"等"字样
-                if len(new_tv_shows) > 5:
-                    message += f"等 {len(new_tv_shows)} 部新热门剧集\n"
                 
                 message += "\n"
             
             # 保存数据，确保标记的notified状态被保存
             save_hot_data(data)
-            
+        
         message += "<b>热门电影 TOP 5:</b>\n"
         
         # 添加热门电影信息，并添加链接
