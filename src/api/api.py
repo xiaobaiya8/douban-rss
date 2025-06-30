@@ -489,7 +489,13 @@ def save_config_handler():
             "corpsecret": request.form.get('wecom_corpsecret', ''),
             "agentid": request.form.get('wecom_agentid', ''),
             "touser": request.form.get('wecom_touser', '@all'),
-            "notify_mode": request.form.get('wecom_notify_mode', 'always')
+            "notify_mode": request.form.get('wecom_notify_mode', 'always'),
+            # 添加代理配置
+            "proxy": {
+                "enabled": request.form.get('wecom_proxy_enabled') == 'true',
+                "type": request.form.get('wecom_proxy_type', 'http'),
+                "url": request.form.get('wecom_proxy_url', '')
+            }
         }
         
         config = {

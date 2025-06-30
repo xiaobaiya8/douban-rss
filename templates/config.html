@@ -80,26 +80,18 @@
             
             <div class="form-group">
                 <label>消息通知设置</label>
-                <div class="notification-method-selector">
-                    <div class="method-buttons">
-                        <button type="button" class="method-button {{ 'active' if not config.get('wecom', {}).get('enabled') else '' }}" 
-                                onclick="switchNotifyMethod('telegram')">
-                            <i class="bi bi-telegram"></i> Telegram
-                        </button>
-                        <button type="button" class="method-button {{ 'active' if config.get('wecom', {}).get('enabled') else '' }}" 
-                                onclick="switchNotifyMethod('wecom')">
-                            <i class="bi bi-wechat"></i> 企业微信
-                        </button>
-                    </div>
+                <div class="notification-help">
+                    <i class="bi bi-info-circle"></i> 
+                    <span>可以同时启用多种通知方式，支持Telegram和企业微信并行使用</span>
                 </div>
 
                 <!-- Telegram 通知设置 -->
-                <div id="telegram-notify-config" class="notify-section {{ 'active' if not config.get('wecom', {}).get('enabled') else '' }}">
+                <div class="notify-section active">
                     <div class="telegram-config">
-                        <label class="checkbox-label">
+                        <label class="checkbox-label section-header">
                             <input type="checkbox" id="telegram_enabled" name="telegram_enabled" 
                                 {{ 'checked' if config.get('telegram', {}).get('enabled') else '' }}>
-                            <span><i class="bi bi-bell"></i> 启用 Telegram 通知</span>
+                            <span><i class="bi bi-telegram"></i> 启用 Telegram 通知</span>
                         </label>
                         
                         <div id="telegramSettings" class="{{ 'show' if config.get('telegram', {}).get('enabled') else '' }}">
@@ -160,12 +152,12 @@
                 </div>
                 
                 <!-- 企业微信通知设置 -->
-                <div id="wecom-notify-config" class="notify-section {{ 'active' if config.get('wecom', {}).get('enabled') else '' }}">
+                <div class="notify-section active">
                     <div class="wecom-config">
-                        <label class="checkbox-label">
+                        <label class="checkbox-label section-header">
                             <input type="checkbox" id="wecom_enabled" name="wecom_enabled" 
                                 {{ 'checked' if config.get('wecom', {}).get('enabled') else '' }}>
-                            <span><i class="bi bi-bell"></i> 启用企业微信通知</span>
+                            <span><i class="bi bi-wechat"></i> 启用企业微信通知</span>
                         </label>
                         
                         <div id="wecomSettings" class="{{ 'show' if config.get('wecom', {}).get('enabled') else '' }}">
@@ -209,6 +201,32 @@
                                     </label>
                                 </div>
                             </div>
+                            
+                            <!-- 企业微信代理设置 -->
+                            <div class="input-group">
+                                <label>代理设置 <i class="bi bi-shield-lock"></i></label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="wecom_proxy_enabled" name="wecom_proxy_enabled" 
+                                        {{ 'checked' if config.get('wecom', {}).get('proxy', {}).get('enabled') else '' }}>
+                                    <span><i class="bi bi-globe"></i> 启用代理</span>
+                                </label>
+                                <div id="wecomProxySettings" class="{{ 'show' if config.get('wecom', {}).get('proxy', {}).get('enabled') else '' }}">
+                                    <div class="proxy-type">
+                                        <label>代理类型</label>
+                                        <select id="wecom_proxy_type" name="wecom_proxy_type">
+                                            <option value="http" {{ 'selected' if config.get('wecom', {}).get('proxy', {}).get('type') == 'http' else '' }}>HTTP</option>
+                                            <option value="socks5" {{ 'selected' if config.get('wecom', {}).get('proxy', {}).get('type') == 'socks5' else '' }}>SOCKS5</option>
+                                        </select>
+                                    </div>
+                                    <div class="proxy-url">
+                                        <label>代理地址</label>
+                                        <input type="text" id="wecom_proxy_url" name="wecom_proxy_url" 
+                                            value="{{ config.get('wecom', {}).get('proxy', {}).get('url', '') }}"
+                                            placeholder="例如: 127.0.0.1:7890">
+                                    </div>
+                                </div>
+                            </div>
+                            
                             <div class="input-group">
                                 <div class="wecom-help">
                                     <i class="bi bi-info-circle"></i>

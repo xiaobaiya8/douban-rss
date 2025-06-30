@@ -404,6 +404,11 @@ function saveConfig(successCallback) {
     const wecom_touser = document.getElementById('wecom_touser').value || '@all';
     const wecom_notify_mode = document.querySelector('input[name="wecom_notify_mode"]:checked')?.value || 'always';
     
+    // 添加企业微信代理配置
+    const wecom_proxy_enabled = document.getElementById('wecom_proxy_enabled')?.checked || false;
+    const wecom_proxy_type = document.getElementById('wecom_proxy_type')?.value || 'http';
+    const wecom_proxy_url = document.getElementById('wecom_proxy_url')?.value || '';
+    
     // 构建详细的用户数据
     const usersData = JSON.stringify(users);
     
@@ -447,6 +452,11 @@ function saveConfig(successCallback) {
     formData.append('wecom_agentid', wecom_agentid);
     formData.append('wecom_touser', wecom_touser);
     formData.append('wecom_notify_mode', wecom_notify_mode);
+    
+    // 添加企业微信代理配置
+    formData.append('wecom_proxy_enabled', wecom_proxy_enabled);
+    formData.append('wecom_proxy_type', wecom_proxy_type);
+    formData.append('wecom_proxy_url', wecom_proxy_url);
     
     // 发送请求
     fetch('/save_config', {
@@ -1173,43 +1183,7 @@ function showDoulistIdGuide() {
     modal.style.display = 'block';
 }
 
-// 切换通知方式
-function switchNotifyMethod(method) {
-    // 切换按钮状态
-    const buttons = document.querySelectorAll('.method-button');
-    buttons.forEach(btn => {
-        btn.classList.remove('active');
-    });
-    
-    const activeButton = document.querySelector(`.method-button[onclick*="${method}"]`);
-    if (activeButton) {
-        activeButton.classList.add('active');
-    }
-    
-    // 切换显示区域
-    const sections = document.querySelectorAll('.notify-section');
-    sections.forEach(section => {
-        section.classList.remove('active');
-    });
-    
-    const activeSection = document.getElementById(`${method}-notify-config`);
-    if (activeSection) {
-        activeSection.classList.add('active');
-    }
-    
-    // 更新通知方式启用状态
-    if (method === 'telegram') {
-        // 启用Telegram，禁用企业微信
-        document.getElementById('wecom_enabled').checked = false;
-        updateWecomSettings();
-        saveConfig();
-    } else if (method === 'wecom') {
-        // 启用企业微信，禁用Telegram
-        document.getElementById('telegram_enabled').checked = false;
-        updateTelegramSettings();
-        saveConfig();
-    }
-}
+// 注意：switchNotifyMethod函数已移除，现在支持同时启用多种通知方式
 
 // 处理企业微信设置的显示/隐藏
 function updateWecomSettings() {
@@ -1221,6 +1195,23 @@ function updateWecomSettings() {
             settingsDiv.classList.add('show');
         } else {
             settingsDiv.classList.remove('show');
+        }
+    }
+    
+    // 更新企业微信代理设置显示状态
+    updateWecomProxySettings();
+}
+
+// 添加更新企业微信代理设置的函数
+function updateWecomProxySettings() {
+    const proxyEnabled = document.getElementById('wecom_proxy_enabled')?.checked;
+    const proxySettingsDiv = document.getElementById('wecomProxySettings');
+    
+    if (proxySettingsDiv) {
+        if (proxyEnabled) {
+            proxySettingsDiv.classList.add('show');
+        } else {
+            proxySettingsDiv.classList.remove('show');
         }
     }
 }
@@ -1307,13 +1298,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         telegramEnabled.addEventListener('change', function() {
             updateTelegramSettings();
-            
-            // 如果启用Telegram，切换到Telegram界面并禁用企业微信
-            if (this.checked) {
-                document.getElementById('wecom_enabled').checked = false;
-                updateWecomSettings();
-                switchNotifyMethod('telegram');
-            }
             
             saveConfig(function() {
                 showToast('Telegram 配置已更新');
@@ -1517,13 +1501,6 @@ document.addEventListener('DOMContentLoaded', function() {
         wecomEnabled.addEventListener('change', function() {
             updateWecomSettings();
             
-            // 如果启用企业微信，切换到企业微信界面并禁用Telegram
-            if (this.checked) {
-                document.getElementById('telegram_enabled').checked = false;
-                updateTelegramSettings();
-                switchNotifyMethod('wecom');
-            }
-            
             saveConfig(function() {
                 showToast('企业微信配置已更新');
             });
@@ -1555,4 +1532,33 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     });
+    
+    // 处理企业微信代理设置
+    const wecomProxyCheckbox = document.getElementById('wecom_proxy_enabled');
+    if (wecomProxyCheckbox) {
+        wecomProxyCheckbox.addEventListener('change', function() {
+            updateWecomProxySettings();
+            saveConfig(function() {
+                showToast('企业微信代理设置已更新');
+            });
+        });
+    }
+    
+    // 处理企业微信代理类型选择
+    const wecomProxyType = document.getElementById('wecom_proxy_type');
+    if (wecomProxyType) {
+        wecomProxyType.addEventListener('change', function() {
+            saveConfig(function() {
+                showToast('企业微信代理类型已更新');
+            });
+        });
+    }
+    
+    // 处理企业微信代理地址输入
+    const wecomProxyUrl = document.getElementById('wecom_proxy_url');
+    if (wecomProxyUrl) {
+        wecomProxyUrl.addEventListener('input', debounce(function() {
+            saveConfig();
+        }, 1000));
+    }
 }); 

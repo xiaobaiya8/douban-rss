@@ -25,6 +25,10 @@
     --border-radius: 8px;
     --box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     --transition: all 0.3s ease;
+    
+    /* 信息提示样式变量 */
+    --info-bg: #e7f3ff;
+    --info-text: #0d47a1;
 }
 
 body {
@@ -1424,4 +1428,67 @@ input[type="number"] {
 
 .user-add button {
     white-space: nowrap;
-} 
+}
+
+/* 通知配置帮助信息 */
+.notification-help {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    padding: 12px 16px;
+    background-color: var(--info-bg);
+    border-left: 4px solid var(--info-color);
+    border-radius: 4px;
+    font-size: 14px;
+    color: var(--info-text);
+}
+
+.notification-help i {
+    font-size: 16px;
+    color: var(--info-color);
+}
+
+/* 通知区域标题 */
+.section-header {
+    font-weight: 600 !important;
+    font-size: 16px !important;
+    margin-bottom: 15px !important;
+    padding-bottom: 10px !important;
+    border-bottom: 1px solid var(--border-color) !important;
+}
+
+.section-header span {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.section-header i {
+    font-size: 18px;
+}
+
+/* 通知区域样式调整 */
+.notify-section {
+    margin-bottom: 30px;
+    padding: 20px;
+    background-color: var(--container-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+}
+
+/* 企业微信代理设置样式 */
+#wecomProxySettings {
+    display: none;
+    margin-top: 10px;
+    padding: 15px;
+    background-color: var(--input-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+}
+
+#wecomProxySettings.show {
+    display: block;
+}
+
+ 

@@ -381,9 +381,28 @@ def send_wecom_message(message, config, has_new_content=False):
         return
     
     try:
+        # 设置代理
+        proxies = None
+        if wecom_config.get('proxy', {}).get('enabled'):
+            proxy_type = wecom_config['proxy'].get('type', 'http')
+            proxy_url = wecom_config['proxy'].get('url', '')
+            
+            if proxy_url:
+                if proxy_type == 'http':
+                    proxies = {
+                        'http': f'http://{proxy_url}',
+                        'https': f'http://{proxy_url}'
+                    }
+                elif proxy_type == 'socks5':
+                    proxies = {
+                        'http': f'socks5://{proxy_url}',
+                        'https': f'socks5://{proxy_url}'
+                    }
+                print(f"企业微信使用{proxy_type}代理: {proxy_url}")
+        
         # 第一步：获取访问令牌
         token_url = f"https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid={corpid}&corpsecret={corpsecret}"
-        token_response = requests.get(token_url, timeout=10)
+        token_response = requests.get(token_url, proxies=proxies, timeout=10)
         token_data = token_response.json()
         
         if token_data.get('errcode') != 0:
@@ -433,7 +452,7 @@ def send_wecom_message(message, config, has_new_content=False):
             }
         }
         
-        send_response = requests.post(send_url, json=send_data, timeout=10)
+        send_response = requests.post(send_url, json=send_data, proxies=proxies, timeout=10)
         send_result = send_response.json()
         
         if send_result.get('errcode') == 0:
