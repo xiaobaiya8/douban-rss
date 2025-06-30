@@ -19,7 +19,13 @@ __all__ = [
     'send_wecom_message',
     'make_douban_headers',
     'load_json_data',
-    'save_json_data'
+    'save_json_data',
+    'load_subject_cache',
+    'save_subject_cache',
+    'is_cache_expired',
+    'update_cache_item',
+    'migrate_legacy_cache_data',
+    'get_subject_info_with_cache'
 ]
 
 # 添加版本信息
@@ -28,6 +34,10 @@ __version__ = '1.0.0'
 # 获取配置目录
 CONFIG_DIR = os.getenv('CONFIG_DIR', 'config')
 CONFIG_FILE = os.path.join(CONFIG_DIR, 'config.json')
+CACHE_FILE = os.path.join(CONFIG_DIR, 'subject_cache.json')
+
+# 缓存过期天数（30天）
+CACHE_EXPIRE_DAYS = 30
 
 def load_config():
     """加载配置文件"""
@@ -253,7 +263,7 @@ def parse_api_item(item, cookie):
     try:
         # 获取详细信息
         subject_id = item['id']
-        info = get_subject_info(subject_id, cookie)
+        info = get_subject_info_with_cache(subject_id, cookie)
         
         if not info:
             return None
@@ -502,4 +512,178 @@ def save_json_data(data, file_path):
         return True
     except Exception as e:
         print(f"保存数据失败: {file_path}, 错误: {e}")
-        return False 
+        return False
+
+def load_subject_cache():
+    """加载条目缓存"""
+    try:
+        cache_data = load_json_data(CACHE_FILE, {})
+        print(f"已加载条目缓存: {len(cache_data)} 条记录")
+        return cache_data
+    except Exception as e:
+        print(f"加载条目缓存失败: {e}")
+        return {}
+
+def save_subject_cache(cache_data):
+    """保存条目缓存"""
+    try:
+        save_json_data(cache_data, CACHE_FILE)
+        print(f"已保存条目缓存: {len(cache_data)} 条记录")
+    except Exception as e:
+        print(f"保存条目缓存失败: {e}")
+
+def is_cache_expired(cache_timestamp, expire_days=CACHE_EXPIRE_DAYS):
+    """检查缓存是否过期
+    
+    Args:
+        cache_timestamp: 缓存时间戳（字符串格式：'2024-01-01 12:00:00'）
+        expire_days: 过期天数，默认30天
+    
+    Returns:
+        bool: True表示已过期，False表示未过期
+    """
+    if not cache_timestamp:
+        return True
+    
+    try:
+        import datetime
+        cache_time = datetime.datetime.strptime(cache_timestamp, '%Y-%m-%d %H:%M:%S')
+        current_time = datetime.datetime.now()
+        expired = (current_time - cache_time).days >= expire_days
+        
+        if expired:
+            print(f"缓存已过期: {cache_timestamp} (超过{expire_days}天)")
+        
+        return expired
+    except Exception as e:
+        print(f"检查缓存过期时间出错: {e}")
+        return True  # 如果无法解析时间，则认为已过期
+
+def update_cache_item(cache_data, subject_id, info):
+    """更新缓存条目
+    
+    Args:
+        cache_data: 缓存数据字典
+        subject_id: 条目ID  
+        info: 条目信息
+    """
+    import time
+    current_time = time.strftime('%Y-%m-%d %H:%M:%S')
+    
+    cache_data[subject_id] = {
+        'info': info,
+        'cached_at': current_time
+    }
+    
+    print(f"已缓存条目 {subject_id}: {info.get('type', 'unknown')} - {current_time}")
+
+def migrate_legacy_cache_data():
+    """迁移旧的缓存数据，为没有缓存日期的数据设置当天日期"""
+    try:
+        # 检查是否存在旧的movies.json文件
+        legacy_movies_file = os.path.join(CONFIG_DIR, 'movies.json')
+        if not os.path.exists(legacy_movies_file):
+            return
+        
+        print("发现旧的缓存数据，开始迁移...")
+        import time
+        current_time = time.strftime('%Y-%m-%d %H:%M:%S')
+        
+        # 加载现有缓存
+        cache_data = load_subject_cache()
+        
+        # 加载旧数据
+        legacy_data = load_json_data(legacy_movies_file, {})
+        
+        migrated_count = 0
+        
+        # 迁移所有用户数据
+        for user_id, user_data in legacy_data.items():
+            if isinstance(user_data, dict):
+                # 处理电影数据
+                for movie in user_data.get('movies', []):
+                    if 'id' in movie and movie['id'] not in cache_data:
+                        # 构建缓存信息
+                        info = {
+                            'type': movie.get('type', 'movie'),
+                            'imdb_id': movie.get('imdb_id'),
+                            'year': movie.get('year', ''),
+                            'duration': movie.get('duration', ''),
+                            'region': movie.get('region', ''),
+                            'director': movie.get('director', []),
+                            'actors': movie.get('actors', []),
+                            'genres': movie.get('genres', []),
+                            'languages': movie.get('languages', []),
+                            'release_date': movie.get('release_date', ''),
+                            'vote_count': movie.get('vote_count', ''),
+                            'episodes_info': movie.get('episodes_info', {})
+                        }
+                        
+                        cache_data[movie['id']] = {
+                            'info': info,
+                            'cached_at': current_time  # 设置为当天
+                        }
+                        migrated_count += 1
+                
+                # 处理电视剧数据
+                for tv in user_data.get('tv_shows', []):
+                    if 'id' in tv and tv['id'] not in cache_data:
+                        # 构建缓存信息
+                        info = {
+                            'type': tv.get('type', 'tv'),
+                            'imdb_id': tv.get('imdb_id'),
+                            'year': tv.get('year', ''),
+                            'duration': tv.get('duration', ''),
+                            'region': tv.get('region', ''),
+                            'director': tv.get('director', []),
+                            'actors': tv.get('actors', []),
+                            'genres': tv.get('genres', []),
+                            'languages': tv.get('languages', []),
+                            'release_date': tv.get('release_date', ''),
+                            'vote_count': tv.get('vote_count', ''),
+                            'episodes_info': tv.get('episodes_info', {})
+                        }
+                        
+                        cache_data[tv['id']] = {
+                            'info': info,
+                            'cached_at': current_time  # 设置为当天
+                        }
+                        migrated_count += 1
+        
+        if migrated_count > 0:
+            save_subject_cache(cache_data)
+            print(f"缓存迁移完成: 迁移了 {migrated_count} 条记录")
+        else:
+            print("没有需要迁移的缓存数据")
+            
+    except Exception as e:
+        print(f"迁移缓存数据时出错: {e}")
+
+def get_subject_info_with_cache(subject_id, cookie, max_retries=3):
+    """获取条目详细信息（带缓存和过期检查）"""
+    # 加载缓存
+    cache_data = load_subject_cache()
+    
+    # 检查缓存是否存在且未过期
+    if subject_id in cache_data:
+        cached_item = cache_data[subject_id]
+        cached_at = cached_item.get('cached_at')
+        
+        if not is_cache_expired(cached_at):
+            print(f"从缓存获取条目 {subject_id} 信息 (缓存时间: {cached_at})")
+            return cached_item['info']
+        else:
+            print(f"条目 {subject_id} 缓存已过期，将重新获取")
+            # 删除过期缓存
+            del cache_data[subject_id]
+    
+    # 缓存不存在或已过期，重新获取
+    print(f"从网络获取条目 {subject_id} 信息...")
+    info = get_subject_info(subject_id, cookie, max_retries)
+    
+    if info:
+        # 更新缓存
+        update_cache_item(cache_data, subject_id, info)
+        save_subject_cache(cache_data)
+    
+    return info 

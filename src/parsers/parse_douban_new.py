@@ -5,7 +5,7 @@ import os
 import re
 import random
 # 导入豆瓣工具模块
-from src.utils.douban_utils import extract_subject_id, load_config, check_cookie_valid, send_telegram_message, send_wecom_message, make_douban_headers, get_api_data, parse_api_item, load_json_data, save_json_data
+from src.utils.douban_utils import extract_subject_id, load_config, check_cookie_valid, send_telegram_message, send_wecom_message, make_douban_headers, get_api_data, parse_api_item, load_json_data, save_json_data, migrate_legacy_cache_data
 
 # 获取配置目录
 CONFIG_DIR = os.getenv('CONFIG_DIR', 'config')
@@ -192,6 +192,10 @@ def cleanup_temp_files():
 
 def main():
     try:
+        # 在开始时进行缓存迁移
+        print("检查并迁移旧缓存数据...")
+        migrate_legacy_cache_data()
+        
         config = load_config()
         cookie = config.get('cookie', '')
         

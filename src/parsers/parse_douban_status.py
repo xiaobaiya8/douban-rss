@@ -7,7 +7,7 @@ import re
 import random
 import logging
 # 导入豆瓣工具模块
-from src.utils.douban_utils import extract_subject_id, load_config, check_cookie_valid, send_telegram_message, send_wecom_message, make_douban_headers, load_json_data, save_json_data
+from src.utils.douban_utils import extract_subject_id, load_config, check_cookie_valid, send_telegram_message, send_wecom_message, make_douban_headers, load_json_data, save_json_data, migrate_legacy_cache_data
 
 # 设置日志
 logging.basicConfig(
@@ -804,6 +804,10 @@ def fetch_user_status(user_id, cookie, pages=1):
 
 def main():
     try:
+        # 在开始时进行缓存迁移
+        print("检查并迁移旧缓存数据...")
+        migrate_legacy_cache_data()
+        
         # 加载URL缓存
         load_url_cache()
         

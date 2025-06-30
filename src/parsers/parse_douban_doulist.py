@@ -7,7 +7,7 @@ import re
 import random
 import traceback
 # 导入豆瓣工具模块
-from src.utils.douban_utils import extract_subject_id, load_config, check_cookie_valid, send_telegram_message, send_wecom_message, make_douban_headers, load_json_data, save_json_data, get_subject_info
+from src.utils.douban_utils import extract_subject_id, load_config, check_cookie_valid, send_telegram_message, send_wecom_message, make_douban_headers, load_json_data, save_json_data, get_subject_info_with_cache, migrate_legacy_cache_data
 
 # 获取配置目录
 CONFIG_DIR = os.getenv('CONFIG_DIR', 'config')
@@ -144,7 +144,7 @@ def parse_doulist_item(item, cookie):
             
         # 获取详细信息，不使用缓存，每次都获取最新数据
         print(f"获取详细信息: {title} (ID: {subject_id})")
-        info = get_subject_info(subject_id, cookie)
+        info = get_subject_info_with_cache(subject_id, cookie)
         
         if not info:
             print(f"无法获取详细信息，使用默认值")
@@ -437,6 +437,10 @@ def update_doulist(doulist_id, doulist_config, cookie):
 
 def main():
     try:
+        # 在开始时进行缓存迁移
+        print("检查并迁移旧缓存数据...")
+        migrate_legacy_cache_data()
+        
         config = load_config()
         cookie = config.get('cookie', '')
         

@@ -7,138 +7,16 @@ import re
 import random
 import traceback
 # 导入豆瓣工具模块
-from src.utils.douban_utils import extract_subject_id, load_config, check_cookie_valid, send_telegram_message, send_wecom_message, make_douban_headers, load_json_data, save_json_data
+from src.utils.douban_utils import extract_subject_id, load_config, check_cookie_valid, send_telegram_message, send_wecom_message, make_douban_headers, load_json_data, save_json_data, get_subject_info_with_cache, migrate_legacy_cache_data, load_subject_cache, is_cache_expired
 
 # 获取配置目录
 CONFIG_DIR = os.getenv('CONFIG_DIR', 'config')
 CONFIG_FILE = os.path.join(CONFIG_DIR, 'config.json')
 MOVIES_FILE = os.path.join(CONFIG_DIR, 'movies.json')
 
-def get_subject_info(subject_id, cookie, max_retries=3):
-    """获取条目信息"""
-    for attempt in range(max_retries):
-        try:
-            url = f'https://movie.douban.com/subject/{subject_id}/'
-            headers = make_douban_headers(cookie)
-            
-            print(f"正在获取条目 {subject_id} 的信息...")
-            
-            # 随机延迟1-3秒
-            delay = random.uniform(1, 3)
-            time.sleep(delay)
-            
-            response = requests.get(url, headers=headers)
-            
-            if response.status_code == 200:
-                soup = BeautifulSoup(response.text, 'html.parser')
-                
-                # 不再打印页面结构
-                info_div = soup.find('div', {'id': 'info'})
-                
-                # 获取IMDB ID - 方法1：从链接获取
-                imdb_link = soup.find('a', {'href': re.compile(r'www\.imdb\.com/title/(tt\d+)')})
-                imdb_id = None
-                if imdb_link:
-                    match = re.search(r'tt\d+', imdb_link['href'])
-                    if match:
-                        imdb_id = match.group()
-                
-                # 获取IMDB ID - 方法2：从文本获取
-                if not imdb_id and info_div:
-                    # 先找到IMDb:标签
-                    imdb_span = info_div.find('span', text=re.compile(r'IMDb:'))
-                    if imdb_span:
-                        # 获取IMDb标签后面的文本
-                        imdb_text = imdb_span.next_sibling
-                        if imdb_text:
-                            match = re.search(r'tt\d+', imdb_text.strip())
-                            if match:
-                                imdb_id = match.group()
-                
-                # 查找"谁在看"标题来判断类型
-                others_interests = soup.find('div', {'id': 'subject-others-interests'})
-                if others_interests:
-                    title = others_interests.find('i')
-                    if title:
-                        title_text = title.text.strip()
-                        # 根据标题判断类型
-                        if '这部剧集' in title_text:
-                            media_type = 'tv'
-                        elif '这部电影' in title_text:
-                            media_type = 'movie'
-                        else:
-                            # 如果无法从标题判断，则检查类型标签
-                            genre_span = info_div.find('span', text='类型:') if info_div else None
-                            if genre_span:
-                                genre = genre_span.find_next('span', property='v:genre')
-                                if genre and genre.text.strip() in ['真人秀', '纪录片', '综艺']:
-                                    media_type = 'tv'
-                                else:
-                                    media_type = 'movie'
-                            else:
-                                media_type = 'movie'  # 默认为电影
-                else:
-                    # 如果找不到"谁在看"区域，使用类型标签判断
-                    genre_span = info_div.find('span', text='类型:') if info_div else None
-                    if genre_span:
-                        genre = genre_span.find_next('span', property='v:genre')
-                        if genre and genre.text.strip() in ['真人秀', '纪录片', '综艺']:
-                            media_type = 'tv'
-                        else:
-                            media_type = 'movie'
-                    else:
-                        media_type = 'movie'  # 默认为电影
-                    
-                print(f"条目 {subject_id} 的类型为: {media_type}{', IMDB ID: ' + imdb_id if imdb_id else ''}")
-                
-                return {
-                    'type': media_type,
-                    'imdb_id': imdb_id
-                }
-            else:
-                print(f"获取条目 {subject_id} 失败: HTTP {response.status_code}")
-                if attempt < max_retries - 1:
-                    print(f"将在 3 秒后重试...")
-                    time.sleep(3)
-                    continue
-                else:
-                    raise requests.RequestException(f"获取条目信息失败: HTTP {response.status_code}")
-                    
-        except Exception as e:
-            print(f"获取条目 {subject_id} 时出错: {e}")
-            if attempt < max_retries - 1:
-                print(f"将在 3 秒后重试...")
-                time.sleep(3)
-                continue
-            else:
-                raise
-    
-    return {
-        'type': 'movie',  # 默认为电影
-        'imdb_id': None
-    }
 
-def load_cache():
-    """加载缓存数据"""
-    try:
-        if os.path.exists('movies.json'):
-            with open('movies.json', 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                # 构建缓存字典 {title: {type, imdb_id}}
-                cache = {}
-                for item in data.get('movies', []) + data.get('tv_shows', []):
-                    cache[item['title']] = {
-                        'type': item['type'],
-                        'imdb_id': item['imdb_id'],
-                        'info': item['info']
-                    }
-                print(f"已加载缓存数据: {len(cache)} 条记录")
-                return cache
-    except Exception as e:
-        print(f"加载缓存失败: {e}")
-    return {}
 
-def parse_movie_item(item, cache, cookie):
+def parse_movie_item(item, cookie):
     """解析电影条目"""
     # 获取标题
     title_elem = item.find('li', class_='title')
@@ -151,30 +29,28 @@ def parse_movie_item(item, cache, cookie):
     title = titles[0].strip()  # 主标题
     subtitle = titles[1].strip() if len(titles) > 1 else ''  # 副标题
     
-    # 检查缓存
-    if title in cache:
-        print(f"从缓存获取: {title}")
-        cached_data = cache[title]
-        media_type = cached_data['type']
-        imdb_id = cached_data['imdb_id']
-    else:
-        # 获取链接和ID
-        url = ''
-        link_elem = item.find('a', href=True)
-        if link_elem:
-            url = link_elem['href']
-        
-        # 从URL中提取ID并获取类型
-        subject_id = extract_subject_id(url)
-        if subject_id:
-            print(f"处理条目: {title} (ID: {subject_id})")
-            info = get_subject_info(subject_id, cookie)
+    # 获取链接和ID
+    url = ''
+    link_elem = item.find('a', href=True)
+    if link_elem:
+        url = link_elem['href']
+    
+    # 从URL中提取ID并获取类型
+    subject_id = extract_subject_id(url)
+    if subject_id:
+        print(f"处理条目: {title} (ID: {subject_id})")
+        info = get_subject_info_with_cache(subject_id, cookie)
+        if info:
             media_type = info['type']
             imdb_id = info['imdb_id']
         else:
-            print(f"警告: 无法从URL提取ID")
+            print(f"警告: 无法获取条目信息")
             media_type = 'movie'
             imdb_id = None
+    else:
+        print(f"警告: 无法从URL提取ID")
+        media_type = 'movie'
+        imdb_id = None
     
     # 获取其他信息
     intro_elem = item.find('li', class_='intro')
@@ -217,16 +93,34 @@ def save_all_data(all_data):
     """保存所有数据到文件"""
     save_json_data(all_data, MOVIES_FILE)
 
-def is_duplicate(title, user_id, all_data):
-    """检查条目是否重复"""
+def check_item_status(title, user_id, all_data):
+    """检查条目状态：新增、重复、或需要更新缓存
+    
+    返回值:
+        - ('new', None): 全新条目
+        - ('duplicate', item): 重复条目，缓存未过期
+        - ('cache_expired', item): 重复条目，但缓存已过期，需要更新
+    """
     user_data = all_data.get(user_id, {'movies': [], 'tv_shows': []})
     all_items = user_data['movies'] + user_data['tv_shows']
     
     # 同时检查主标题和完整标题
     for item in all_items:
         if title == item.get('title') or title == item.get('full_title'):
-            return True
-    return False
+            # 找到重复条目，检查其缓存是否过期
+            subject_id = item.get('id')
+            if subject_id:
+                # 检查缓存是否过期
+                cache_data = load_subject_cache()
+                if subject_id in cache_data:
+                    cached_at = cache_data[subject_id].get('cached_at')
+                    if is_cache_expired(cached_at):
+                        print(f"条目 {title} 缓存已过期，将更新信息（不会发送通知）")
+                        return ('cache_expired', item)
+                
+            return ('duplicate', item)  # 缓存未过期或无缓存信息，算作重复
+    
+    return ('new', None)  # 全新条目
 
 def get_douban_html(user_id, cookie, list_type='wish', page=1):
     """获取豆瓣HTML内容
@@ -366,32 +260,68 @@ def generate_movies_json(html_content, user_id, all_data, cookie, list_type='wis
             titles = full_title.split(' / ', 1)
             title = titles[0].strip()
             
-            # 检查是否重复
-            if is_duplicate(title, user_id, all_data):
+            # 检查条目状态
+            status, existing_item = check_item_status(title, user_id, all_data)
+            
+            if status == 'duplicate':
                 print(f"条目已存在，跳过: {title}")
                 continue
+            elif status == 'cache_expired':
+                # 缓存过期，需要更新信息但不算新增
+                print(f"处理缓存过期条目 [{index}/{total_items}]: {title}")
                 
-            print(f"处理新条目 [{index}/{total_items}]: {title}")
-            new_items += 1
-            data = parse_movie_item(item, {}, cookie)
-            
-            # 设置notified为False，表示这是一个新条目需要通知
-            data['notified'] = False
-            
-            # 添加来源标记，方便后续区分数据来源
-            data['source'] = list_type
-            
-            # 根据类型添加到对应列表
-            if data["type"] == "movie":
-                movies.append(data)
-                print(f"添加电影: {data['title']} (来自{list_type}列表)")
-            else:
-                tv_shows.append(data)
-                print(f"添加剧集: {data['title']} (来自{list_type}列表)")
-            
-            # 实时保存数据
-            all_data[user_id] = {'movies': movies, 'tv_shows': tv_shows}
-            save_all_data(all_data)
+                # 获取更新后的信息
+                data = parse_movie_item(item, cookie)
+                
+                # 保留原有的notified状态，不改变通知状态
+                data['notified'] = existing_item.get('notified', True)  # 默认为True，表示不需要通知
+                
+                # 添加来源标记
+                data['source'] = list_type
+                
+                # 从原列表中移除旧条目
+                if existing_item in user_data['movies']:
+                    user_data['movies'].remove(existing_item)
+                elif existing_item in user_data['tv_shows']:
+                    user_data['tv_shows'].remove(existing_item)
+                
+                # 添加更新后的条目
+                if data["type"] == "movie":
+                    movies.append(data)
+                    print(f"更新电影信息: {data['title']} (来自{list_type}列表)")
+                else:
+                    tv_shows.append(data)
+                    print(f"更新剧集信息: {data['title']} (来自{list_type}列表)")
+                
+                # 实时保存数据
+                all_data[user_id] = {'movies': movies, 'tv_shows': tv_shows}
+                save_all_data(all_data)
+                
+                # 缓存更新不算新增，不增加new_items计数
+                
+            elif status == 'new':
+                # 全新条目
+                print(f"处理新条目 [{index}/{total_items}]: {title}")
+                new_items += 1
+                data = parse_movie_item(item, cookie)
+                
+                # 设置notified为False，表示这是一个新条目需要通知
+                data['notified'] = False
+                
+                # 添加来源标记，方便后续区分数据来源
+                data['source'] = list_type
+                
+                # 根据类型添加到对应列表
+                if data["type"] == "movie":
+                    movies.append(data)
+                    print(f"添加电影: {data['title']} (来自{list_type}列表)")
+                else:
+                    tv_shows.append(data)
+                    print(f"添加剧集: {data['title']} (来自{list_type}列表)")
+                
+                # 实时保存数据
+                all_data[user_id] = {'movies': movies, 'tv_shows': tv_shows}
+                save_all_data(all_data)
             
             # 只在处理新条目时添加延迟
             if index < total_items:
@@ -424,6 +354,10 @@ def cleanup_temp_files():
 
 def main():
     try:
+        # 在开始时进行缓存迁移
+        print("检查并迁移旧缓存数据...")
+        migrate_legacy_cache_data()
+        
         config = load_config()
         cookie = config.get('cookie', '')
         
